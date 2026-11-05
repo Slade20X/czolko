@@ -16,6 +16,7 @@ export interface Player {
   ready: boolean;
   score: number;
   correct: number;
+  roundGained: number;
 }
 
 /** Tajne hasło gracza w bieżącej rundzie - TYLKO po stronie serwera. */

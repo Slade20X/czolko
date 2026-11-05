@@ -47,7 +47,7 @@ export function generateCode(taken: ReadonlySet<string>): string {
 }
 
 const newPlayer = (id: string, nick: string): Player =>
-  ({ id, nick: normalizeNick(nick), connected: true, ready: false, score: 0, correct: 0 });
+  ({ id, nick: normalizeNick(nick), connected: true, ready: false, score: 0, correct: 0, roundGained: 0 });
 
 export function createRoom(hostId: string, nick: string, input: Partial<Settings>, taken: ReadonlySet<string>): Room {
   const settings = normalizeSettings(input);
@@ -133,7 +133,8 @@ function endRound(room: Room, now: number): void {
     round: room.round,
     entries: room.order.filter((id) => room.secrets[id]).map((id) => {
       const s = room.secrets[id]!;
-      return { id, word: s.word, solved: s.solved, gained: s.gained };
+      const p = room.players.find((x) => x.id === id)!;
+      return { id, word: s.word, solved: p.roundGained > 0, gained: p.roundGained };
     }),
   };
 }
@@ -149,6 +150,7 @@ function beginRound(room: Room, now: number, rng: Rng): void {
   room.round += 1;
   room.lastResult = null;
   room.revealDeadline = null;
+  for (const p of room.players) p.roundGained = 0;
   room.order = room.order.filter((id) => room.players.some((p) => p.id === id));
   // Każdy gracz dostaje inne hasło; hasła nie powtarzają się, dopóki starcza puli.
   let available = room.pool.filter((w) => !room.used.has(w));
@@ -202,18 +204,34 @@ export function guess(room: Room, playerId: string, turnId: number, text: string
   const s = room.secrets[playerId]!;
   const typed = foldWord(text);
   const correct = typed !== '' && typed === foldWord(s.word);
-  let gained = 0;
+  const guessedWord = s.word;
+
   if (correct) {
-    gained = room.settings.maxTurns - s.turns; // min. 1, bo tura jest uprawniona tylko przy turns < maxTurns
-    s.solved = true;
-    s.gained = gained;
     const p = room.players.find((x) => x.id === playerId)!;
-    p.score += gained;
+    p.score += 1;
     p.correct += 1;
+    p.roundGained += 1;
+
+    const next = drawNextWord(room);
+    if (next) {
+      // Gracz dostaje kolejne hasło i gra dalej w tej samej turze (deadline bez zmian).
+      // turnId++ unieważnia stare zdarzenia od klienta — ale nie kończy tury.
+      room.secrets[playerId] = { word: next, solved: false, turns: s.turns, gained: 0 };
+      room.turnId += 1;
+    } else {
+      // Pula wyczerpana — gracz kończy rundę bez nowego hasła.
+      s.solved = true;
+      s.gained = 1;
+      s.turns += 1;
+      advance(room, now);
+    }
+    return { correct: true, gained: 1, word: guessedWord };
   }
+
+  // Pudło: tura przepada, przechodzi do następnego gracza.
   s.turns += 1;
   advance(room, now);
-  return { correct, gained, word: correct ? s.word : null };
+  return { correct: false, gained: 0, word: null };
 }
 
 /** Aktywny gracz zadał swoje pytanie i oddaje turę. */
@@ -279,4 +297,13 @@ export function resetToLobby(room: Room, hostId: string): void {
   room.phase = 'lobby'; room.round = 0; room.activeId = null; room.cursor = 0; room.turnId = 0;
   room.secrets = {}; room.order = []; room.deadline = null; room.revealDeadline = null; room.lastResult = null;
   for (const p of room.players) { p.score = 0; p.correct = 0; p.ready = false; }
+}
+
+function drawNextWord(room: Room): string | null {
+  let available = room.pool.filter((w) => !room.used.has(w));
+  if (available.length === 0) { room.used.clear(); available = [...room.pool]; }
+  if (available.length === 0) return null;
+  const word = available[Math.floor(Math.random() * available.length)]!;
+  room.used.add(word);
+  return word;
 }

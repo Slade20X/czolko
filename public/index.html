@@ -202,7 +202,7 @@ const CI={all:'🎲',zwierzeta:'🐾',jedzenie:'🍕',przedmioty:'🧰',miejsca:
 const ERR={ROOM_FULL:'Pokój jest pełny',NO_ROOM:'Pokój nie istnieje',GAME_STARTED:'Gra już się rozpoczęła',INVALID_NICK:'Podaj nick (1–20 znaków)',NOT_ENOUGH_PLAYERS:'Potrzeba co najmniej 2 graczy',EMPTY_POOL:'Brak haseł w kategorii',NOT_ENOUGH_WORDS:'Za mało haseł dla tylu graczy',NOT_HOST:'Tylko gospodarz może to zrobić',TIME_UP:'Czas na turę minął',STALE_TURN:'Ta tura już się skończyła',NOT_ACTIVE_PLAYER:'To nie jest Twoja tura',NO_ACTIVE_ROUND:'Runda nie trwa'};
 const STAR='<path id="st" d="M0-18 5-6 18-5 8 4 11 17 0 10-11 17-8 4-18-5-5-6z"/>';
 /* logo: symetryczne gwiazdki, wszystko mieści się w viewBox i jest wycentrowane */
-const LOGO=`<svg class="logo" viewBox="0 0 520 200" role="img" aria-label="Czółko Game"><defs>${STAR}</defs><g font-family="Impact,'Arial Black',sans-serif" font-weight="900" text-anchor="middle" stroke-linejoin="round" style="paint-order:stroke"><text x="260" y="88" font-size="86" fill="#fff" stroke="#1a1a40" stroke-width="14" transform="rotate(-3 260 60)">CZÓŁKO</text><text x="260" y="180" font-size="98" fill="#ff9f1a" stroke="#1a1a40" stroke-width="14" transform="rotate(-2 260 140)">GAME</text></g><g fill="#ffd900" stroke="#1a1a40" stroke-width="3" stroke-linejoin="round"><use href="#st" transform="translate(34 64) scale(1.2)"/><use href="#st" transform="translate(486 64) scale(1.2)"/><use href="#st" transform="translate(26 150) scale(.8)"/><use href="#st" transform="translate(494 150) scale(.8)"/></g></svg>`;
+const LOGO=`<svg class="logo" viewBox="0 0 520 200" role="img" aria-label="Kim Jestem"><defs>${STAR}</defs><g font-family="Impact,'Arial Black',sans-serif" font-weight="900" text-anchor="middle" stroke-linejoin="round" style="paint-order:stroke"><text x="260" y="88" font-size="86" fill="#fff" stroke="#1a1a40" stroke-width="14" transform="rotate(-3 260 60)">KIM</text><text x="260" y="180" font-size="98" fill="#ff9f1a" stroke="#1a1a40" stroke-width="14" transform="rotate(-2 260 140)">JESTEM</text></g><g fill="#ffd900" stroke="#1a1a40" stroke-width="3" stroke-linejoin="round"><use href="#st" transform="translate(34 64) scale(1.2)"/><use href="#st" transform="translate(486 64) scale(1.2)"/><use href="#st" transform="translate(26 150) scale(.8)"/><use href="#st" transform="translate(494 150) scale(.8)"/></g></svg>`;
 const CROWN='<svg class="crown" viewBox="0 0 40 30"><path d="M3 26 0 6l10 8 10-12 10 12 10-8-3 20z" fill="#ffd900" stroke="#1a1a40" stroke-width="2.5" stroke-linejoin="round"/></svg>';
 let CFG,sock,S={v:null,id:null,off:0,stream:null,pcs:{},streams:{},vids:{},joined:false,hide:false,nk:null,sc:null};
 const emit=(ev,p)=>new Promise(r=>sock.emit(ev,p,r));
@@ -408,7 +408,7 @@ function render(){
   const up={};v.players.forEach(p=>{up[p.id]=!!S.sc&&S.sc[p.id]!==undefined&&p.score>S.sc[p.id]});
   S.sc=Object.fromEntries(v.players.map(p=>[p.id,p.score]));
   const banner={lobby:'Czekamy na graczy',round:act?'TWOJA TURA!':`Pyta: <b>${esc(ap?.nick||'')}</b>`,reveal:`Koniec rundy ${v.round}!`,finished:'Koniec gry'}[v.phase];
-  const hint=R?(act?`Zadaj jedno pytanie TAK/NIE albo spróbuj zgadnąć. Trafienie teraz: <b>${left}</b> pkt`:mb?.solved?'Odgadłeś swoje hasło! Odpowiadaj pozostałym.':left<=0?'Wyczerpałeś pytania. Odpowiadaj pozostałym.':`Odpowiadaj głosem · Twoje pytania: ${left}/${MT}`):RV?'Tak wyglądały hasła. Zaraz kolejna runda.':'';
+  const hint=R?(act?`Zadaj jedno pytanie TAK/NIE albo zgadnij hasło. Zgadnięcie: <b>1</b> pkt`:mb?.solved?'Odgadłeś swoje hasło! Odpowiadaj pozostałym.':left<=0?'Wyczerpałeś pytania. Odpowiadaj pozostałym.':`Odpowiadaj głosem · Twoje pytania: ${left}/${MT}`):RV?'Tak wyglądały hasła. Zaraz kolejna runda.':'';
   const cards=v.players.map((p,i)=>{
     const b=v.board[p.id];
     let cls='st',lbl='',wd=p.connected?'W lobby':'OFFLINE';
@@ -461,7 +461,7 @@ const A={
   set:setOpt,
   start:()=>emit('start').then(fail),
   async guess(){const i=$('#gi'),t=i?.value.trim();if(!t){toast('Wpisz swoje hasło');i?.focus();return}
-    const r=await emit('guess',{turnId:S.v.turnId,text:t});if(fail(r))r.correct?toast('Brawo! Zgadłeś!',1):toast('Pudło! Tura przechodzi dalej')},
+    const r=await emit('guess',{turnId:S.v.turnId,text:t});if(fail(r))r.correct?toast('+1 pkt! Nowe hasło na czole',1):toast('Pudło! Tura przechodzi dalej')},
   pass:()=>emit('pass',{turnId:S.v.turnId}).then(fail),
   next:()=>emit('next').then(fail),
   again:()=>emit('again').then(fail),
