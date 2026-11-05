@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Czółko z Ekipą</title>
+<style>
+*{box-sizing:border-box}
+:root{--ink:#0b2a6b;--glass:rgba(8,48,150,.42);--line:rgba(255,255,255,.3)}
+body{margin:0;font-family:Inter,Poppins,"Segoe UI",system-ui,sans-serif;color:#fff;min-height:100dvh;
+background:radial-gradient(1300px 760px at 50% -12%,#45a8ff 0,#087BFF 32%,#0a4fd6 60%,#041E66 100%) fixed}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.5;
+background:radial-gradient(2px 2px at 10% 20%,#9cd3ff,transparent),radial-gradient(3px 3px at 80% 15%,#cfe8ff,transparent),radial-gradient(2px 2px at 30% 80%,#9cd3ff,transparent),radial-gradient(3px 3px at 90% 70%,#cfe8ff,transparent),radial-gradient(2px 2px at 55% 50%,#9cd3ff,transparent);animation:tw 4s infinite alternate}
+@keyframes tw{to{opacity:.15}}
+button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+#app{position:relative;min-height:100dvh;padding:max(14px,env(safe-area-inset-top)) 16px max(14px,env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:14px}
+.logo{height:clamp(80px,17vh,180px);filter:drop-shadow(0 6px 8px rgba(0,0,0,.4))}
+/* pasek górny: logo ZAWSZE na środku (siatka 1fr auto 1fr) */
+.top{width:100%;max-width:1000px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px}
+.top>:first-child{justify-self:start}.top>:last-child{justify-self:end}
+.top .logo{height:clamp(52px,9vh,84px);justify-self:center;display:block}
+.pill{background:var(--glass);border:1.5px solid var(--line);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-radius:99px;padding:8px 16px;font-weight:700;display:flex;gap:8px;align-items:center;white-space:nowrap}
+.banner{font-size:clamp(1.05rem,2.4vw,1.6rem);font-weight:800;text-align:center;display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;background:var(--glass);border:1.5px solid var(--line);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-radius:99px;padding:8px 24px;min-height:52px;box-shadow:0 8px 24px rgba(0,10,60,.28)}
+.banner b{background:#fff;color:var(--ink);border-radius:14px;padding:2px 14px}
+.banner.mine{background:linear-gradient(#ffe84a,#ffc400);color:#3a2a00;border-color:#fff8c0}
+#tm{background:#ffd900;color:#3a2a00;border-radius:99px;padding:2px 14px;font-variant-numeric:tabular-nums}
+.banner.mine #tm{background:#3a2a00;color:#ffd900}
+.sub2{min-height:1.4em;text-align:center;opacity:.95;font-weight:600;margin-top:-6px;padding:0 8px}.sub2 b{color:#ffd900}
+.grid{flex:1;display:flex;flex-wrap:wrap;justify-content:center;align-content:center;gap:40px 28px;max-width:1000px;width:100%;padding:24px 0 26px}
+
+/* ---- karta gracza ---- */
+.card{width:clamp(150px,30%,300px);container-type:inline-size;animation:pop .4s both}
+@keyframes pop{from{transform:scale(.8);opacity:0}}
+.frame{position:relative;aspect-ratio:16/10;border:5px solid var(--c);border-radius:24px;background:linear-gradient(160deg,#123f9f,#0a2e80);box-shadow:0 12px 26px rgba(0,0,0,.4)}
+.on .frame{animation:pulse 1.2s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--c) 45%,transparent),0 0 34px var(--c)}}
+.off .frame{opacity:.5}
+.slot,.slot video,.av{position:absolute;inset:0;width:100%;height:100%;border-radius:18px;overflow:hidden}
+.slot video{object-fit:cover}
+.av{display:grid;place-items:center;font-size:clamp(2rem,6vw,4rem);font-weight:800;color:#6fb2ff}
+/* nick */
+.nick{position:absolute;z-index:4;top:-17px;left:50%;transform:translateX(-50%);max-width:82%;display:flex;align-items:center;gap:6px;background:linear-gradient(#fff,#dfeaff);color:var(--ink);border:3px solid var(--c);border-radius:99px;padding:3px 14px 3px 9px;font-weight:800;font-size:clamp(.78rem,5.4cqw,1rem);line-height:1.2;white-space:nowrap;box-shadow:0 6px 14px rgba(0,0,0,.4)}
+.nick .dot{flex:none;width:.65em;height:.65em;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px #fff,0 0 8px var(--c)}
+.nick .nt{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.nick i{flex:none;font-size:.6em;font-style:normal;font-weight:900;letter-spacing:.07em;border-radius:99px;padding:2px 7px}
+.nick i.host{background:#ffd900;color:#3a2a00}.nick i.you{background:var(--ink);color:#fff}.nick i.off{background:#ff5a5f;color:#fff}
+/* punkty: złoty medal */
+.pts{position:absolute;top:-14px;right:-12px;z-index:5;width:clamp(48px,18cqw,62px);aspect-ratio:1;border-radius:50%;display:grid;place-content:center;text-align:center;line-height:1;
+background:radial-gradient(circle at 30% 25%,#fff6b0,#ffd900 45%,#ff9f1a);color:#3a2100;border:3px solid #fff;box-shadow:0 6px 14px rgba(0,0,0,.45),inset 0 -3px 0 rgba(0,0,0,.14)}
+.pts b{display:block;font-size:clamp(1.05rem,7.5cqw,1.55rem);font-weight:900}
+.pts small{display:block;font-size:.5rem;font-weight:800;letter-spacing:.14em;opacity:.75;margin-top:2px}
+.pts.up{animation:bump .6s}
+@keyframes bump{40%{transform:scale(1.35) rotate(-8deg)}}
+.crown{position:absolute;top:-34px;left:-8px;width:42px;z-index:5;transform:rotate(-14deg);animation:pop .5s}
+.qs{position:absolute;left:8px;top:8px;z-index:2;background:rgba(6,32,79,.78);border:1px solid var(--line);border-radius:99px;padding:2px 10px;font-size:.78rem;font-weight:800}
+.kick{position:absolute;left:6px;top:6px;z-index:3;background:#ff5a5f;color:#fff;border:0;border-radius:8px;font-weight:800;cursor:pointer}
+/* hasło: „tabliczka" pod ramką */
+.nm{position:relative;z-index:2;margin:-18px auto 0;width:max-content;min-width:72%;max-width:96%;background:linear-gradient(#fff,#e3edff);color:var(--ink);border:2px solid #fff;border-radius:16px;padding:6px 16px 8px;text-align:center;box-shadow:0 8px 18px rgba(0,0,0,.38),inset 0 -4px 0 color-mix(in srgb,var(--c) 75%,transparent)}
+.nm .lbl{display:block;font-size:.58rem;font-weight:800;letter-spacing:.2em;text-transform:uppercase;opacity:.55;margin-bottom:1px}
+.nm .wd{display:block;font-size:clamp(.95rem,8.5cqw,1.5rem);font-weight:900;line-height:1.12;overflow-wrap:anywhere}
+.nm.me{background:linear-gradient(110deg,#ffd900 30%,#fff3a0 50%,#ffd900 70%);background-size:220% 100%;animation:shine 3.2s linear infinite;color:#3a2a00;border-color:#fff8c0}
+.nm.me .wd{letter-spacing:.18em}
+@keyframes shine{to{background-position:-220% 0}}
+.nm.ok{background:linear-gradient(#5cf0a4,#2fe08a);color:#03341c}
+.nm.no{background:linear-gradient(#ffe6e6,#ffc4c4);color:#7a1010}
+.nm.st{background:rgba(255,255,255,.18);color:#fff;border:1px solid var(--line);padding:5px 14px;box-shadow:none;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);min-width:0}
+.nm.st .wd{font-size:.85rem;font-weight:700}
+.gain{display:inline-block;margin-left:8px;background:#0a8a4a;color:#fff;border-radius:99px;padding:1px 9px;font-size:.62em;font-weight:900;vertical-align:middle}
+
+.panel{width:100%;max-width:1000px;border:1.5px solid var(--line);border-radius:26px;background:var(--glass);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,10,60,.35);padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.grp{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center}
+.wait{font-weight:800;font-size:1.1rem;padding:11px 22px;border-radius:99px;background:rgba(255,255,255,.14);border:1.5px dashed rgba(255,255,255,.55);animation:breathe 2s infinite ease-in-out}
+@keyframes breathe{50%{opacity:.6}}
+.btn,select,input{font:inherit;font-weight:700;border-radius:14px;border:0;padding:11px 18px;min-height:44px}
+.btn{background:#1f66e0;color:#fff;cursor:pointer;transition:transform .12s,filter .12s;box-shadow:0 3px 0 #0f3f9c}
+.btn:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.12)}.btn:active:not(:disabled){transform:scale(.96)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.y{background:linear-gradient(#ffe84a,#ffc400);color:#3a2a00;font-size:1.3rem;padding:14px 36px;box-shadow:0 5px 0 #b88700}
+.y.sm{font-size:1.05rem;padding:12px 22px}
+.g{background:#2fe08a;color:#03341c;font-size:1.3rem;padding:14px 30px;box-shadow:0 5px 0 #159a58}
+.ghost{background:#ffffff22;box-shadow:none;border:1px solid var(--line)}
+select,input{background:#fff;color:var(--ink)}
+#gi{flex:1;min-width:170px;max-width:320px}
+.home{display:flex;flex-direction:column;align-items:center;gap:12px;margin:auto;width:100%;max-width:420px}
+.home .logo{height:clamp(110px,26vh,220px)}
+.box{display:flex;flex-direction:column;gap:10px;width:100%}.row{display:flex;gap:8px}.row input{width:110px;text-transform:uppercase;text-align:center}.row .btn{flex:1}
+.msg{min-height:1.3em;color:#ffd900;font-weight:700;text-align:center}.sub{text-align:center;margin:0;opacity:.9}
+
+/* ---- ustawienia gry (lobby) ---- */
+.cfg{width:100%;max-width:1000px;border:1.5px solid var(--line);border-radius:26px;background:var(--glass);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,10,60,.35);padding:16px 18px 18px;animation:pop .4s both}
+.cfg-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-weight:800;font-size:1.05rem;letter-spacing:.04em;margin-bottom:14px}
+.cfg-h span{font-size:.78rem;font-weight:700;opacity:.85;background:rgba(255,255,255,.12);border-radius:99px;padding:3px 12px;letter-spacing:0}
+.cfg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 18px}
+.fld{display:flex;flex-direction:column;gap:8px;min-width:0}
+.fld.wide{grid-column:1/-1}
+.fld>label{font-size:.76rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;opacity:.85}
+.seg,.step{display:flex;align-items:center;background:rgba(2,20,90,.45);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:4px;gap:4px}
+.seg button{flex:1;border:0;border-radius:10px;padding:9px 4px;min-height:40px;font:inherit;font-weight:800;background:transparent;color:#cfe3ff;cursor:pointer;transition:background .15s,color .15s}
+.seg button:hover:not(:disabled):not(.sel){background:rgba(255,255,255,.14);color:#fff}
+.seg button.sel{background:linear-gradient(#ffe84a,#ffc400);color:#3a2a00;box-shadow:0 2px 0 #b88700}
+.seg button:disabled,.chip:disabled,.step button:disabled{cursor:default}
+.step{justify-content:space-between}
+.step button{width:40px;height:40px;border:0;border-radius:10px;font-size:1.3rem;font-weight:800;background:rgba(255,255,255,.16);color:#fff;cursor:pointer;transition:background .15s}
+.step button:hover:not(:disabled){background:rgba(255,255,255,.3)}.step button:disabled{opacity:.35}
+.step output{font-weight:900;font-size:1.25rem;font-variant-numeric:tabular-nums}.step output small{font-size:.75rem;font-weight:700;opacity:.8;margin-left:6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;border-radius:99px;padding:7px 14px;min-height:38px;font:inherit;font-weight:700;font-size:.9rem;cursor:pointer;display:inline-flex;gap:6px;align-items:center;transition:background .15s,transform .12s}
+.chip:hover:not(:disabled):not(.sel){background:rgba(255,255,255,.22);transform:translateY(-1px)}
+.chip.sel{background:#fff;color:var(--ink);border-color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.25)}
+@media(max-width:760px){.cfg-grid{grid-template-columns:1fr}}
+
+/* ---- notatnik: szklana ramka po lewej ---- */
+#notes{position:fixed;z-index:20;display:flex;flex-direction:column;overflow:hidden;border-radius:26px;
+background:linear-gradient(165deg,rgba(255,255,255,.22),rgba(255,255,255,.05)),rgba(6,36,120,.42);
+border:1.5px solid rgba(255,255,255,.4);box-shadow:0 18px 50px rgba(0,10,60,.5),inset 0 1px 0 rgba(255,255,255,.4);
+-webkit-backdrop-filter:blur(16px) saturate(150%);backdrop-filter:blur(16px) saturate(150%)}
+#notes[hidden]{display:none!important}
+.ch{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;font-weight:800;letter-spacing:.06em;border-bottom:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07)}
+.ch span{font-size:.74rem;font-weight:700;opacity:.85;letter-spacing:0;display:flex;align-items:center;gap:6px}
+.ch span:before{content:"";width:8px;height:8px;border-radius:50%;background:#2fe08a;box-shadow:0 0 8px #2fe08a}
+/* notatnik */
+.nh{display:flex;align-items:center;gap:8px}
+#notes .ch span:before{content:"🔒";width:auto;height:auto;background:none;box-shadow:none;border-radius:0;font-size:.75rem}
+.nclose{display:none;width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;font-weight:800;cursor:pointer}
+.nq{display:flex;gap:6px;padding:10px 12px 0}
+.nq button{flex:1;border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff;border-radius:99px;padding:6px 4px;font:inherit;font-size:.8rem;font-weight:800;cursor:pointer;transition:background .15s}
+.nq button:hover{background:rgba(255,255,255,.28)}
+#nt{flex:1;min-height:0;resize:none;border:0;margin:10px 12px 8px;border-radius:14px;padding:0 12px;font:600 .95rem/28px Inter,"Segoe UI",system-ui,sans-serif;color:#23274a;
+background:#fffbe6 repeating-linear-gradient(transparent 0 27px,#d6dcf0 27px 28px);background-attachment:local;box-shadow:inset 0 2px 6px rgba(0,0,0,.18)}
+#nt::placeholder{color:#8a8fb0;font-weight:600}
+.nf{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:0 14px 12px;font-size:.7rem;opacity:.9}
+#nclear{border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:99px;padding:4px 12px;font:inherit;font-size:.72rem;font-weight:800;cursor:pointer}
+#nclear:hover{background:rgba(255,90,95,.7)}
+.nbtn{display:none}
+@media(min-width:1240px){
+ #notes{left:18px;top:50%;transform:translateY(-50%);width:320px;height:min(70dvh,580px)}
+ body.room #app{padding-left:346px;padding-right:18px}}
+@media(max-width:1239px){
+ #notes{display:none}
+ body.notes-open #notes{display:flex;left:8px;right:8px;top:8px;bottom:8px;z-index:25}
+ .nclose{display:block}.nbtn{display:inline-flex;align-items:center}}
+@media(max-width:640px){.card{width:44%}.top{grid-template-columns:1fr 1fr}.top .logo{grid-column:1/-1;grid-row:1;height:58px}.top .pill{padding:6px 12px;font-size:.85rem}.top .pill .btn{padding:2px 8px!important;font-size:.8rem}.panel{justify-content:center}}
+.ov{position:fixed;inset:0;background:#031454ee;z-index:10;display:grid;place-items:center;padding:16px;overflow:auto}
+.ov[hidden]{display:none}
+.res{background:#0a46b8;border:3px solid #3b8dff;border-radius:26px;padding:22px;width:min(480px,100%);text-align:center;display:flex;flex-direction:column;gap:10px}
+.res h2{margin:0;font-size:1.8rem;color:#ffd900;animation:pop .6s}.res table{width:100%;border-collapse:collapse}.res td{padding:6px;border-bottom:1px solid #ffffff33}
+/* ---- okno „Jak grać" ---- */
+#how{z-index:40;background:rgba(3,20,84,.9);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.modal{position:relative;width:min(640px,100%);max-height:calc(100dvh - 32px);overflow:auto;background:linear-gradient(165deg,#1260e6,#0a3a9e);border:2px solid rgba(255,255,255,.45);border-radius:28px;padding:28px 26px 24px;box-shadow:0 30px 80px rgba(0,10,60,.6);display:flex;flex-direction:column;gap:16px;animation:pop .3s both}
+.modal h2{margin:0;font-size:clamp(1.4rem,4vw,1.9rem);color:#ffd900;text-align:center;font-weight:900}
+.modal .lead{margin:0;text-align:center;opacity:.95;line-height:1.45}
+.mx{position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;font-size:1rem;font-weight:800;cursor:pointer}
+.mx:hover{background:rgba(255,255,255,.32)}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:s}
+.steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:10px 14px;line-height:1.4}
+.steps li:before{content:counter(s);flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:900;background:linear-gradient(#ffe84a,#ffc400);color:#3a2a00;box-shadow:0 2px 0 #b88700}
+.steps b{color:#ffd900}
+.mbox{background:rgba(0,10,60,.35);border-radius:16px;padding:12px 16px;line-height:1.45;font-size:.95rem}
+.mbox h3{margin:0 0 6px;font-size:1rem;color:#ffd900}.mbox ul{margin:0;padding-left:20px}.mbox li+li{margin-top:3px}
+#app.still .card,#app.still .cfg{animation:none}
+#toast,#net{position:fixed;left:50%;transform:translateX(-50%);background:#ff5a5f;padding:10px 20px;border-radius:14px;font-weight:700;z-index:50}#toast{top:58px}#net{top:10px;background:#ffb000;color:#321}
+#toast:empty{display:none}#toast.ok{background:#2fe08a;color:#03341c}
+@media(prefers-reduced-motion:reduce){*,*:before{animation:none!important;transition:none!important}}
+</style></head><body>
+<div id="app"></div>
+<aside id="notes" hidden aria-label="Prywatny notatnik">
+ <div class="ch"><b>📝 Notatnik</b><div class="nh"><span>tylko Ty</span><button class="nclose" data-n-close aria-label="Zamknij notatnik">✕</button></div></div>
+ <div class="nq"><button type="button" data-q="✔ TAK">✔ TAK</button><button type="button" data-q="✘ NIE">✘ NIE</button><button type="button" data-q="? MOŻE">? MOŻE</button></div>
+ <textarea id="nt" maxlength="4000" spellcheck="false" placeholder="Notuj odpowiedzi i podejrzenia…"></textarea>
+ <div class="nf"><span>Widoczny tylko dla Ciebie, zapisany na tym urządzeniu</span><button id="nclear" type="button">Wyczyść</button></div>
+</aside>
+<div id="how" class="ov" hidden role="dialog" aria-modal="true" aria-labelledby="how-t">
+ <div class="modal">
+  <button class="mx" data-close aria-label="Zamknij">✕</button>
+  <h2 id="how-t">🎯 Jak grać w Czółko?</h2>
+  <p class="lead">Każdy ma na czole hasło, którego nie widzi, ale widzi hasła wszystkich pozostałych. Twoim zadaniem jest odgadnąć własne, zanim skończą Ci się pytania!</p>
+  <ol class="steps">
+   <li><div><b>Hasła.</b> Na starcie rundy serwer losuje każdemu inne hasło. Patrzysz na kafelki znajomych i widzisz, kim lub czym są, ale nie wiesz, co masz Ty.</div></li>
+   <li><div><b>Twoja tura.</b> Gracze działają po kolei. W swojej turze zadajesz <b>jedno</b> pytanie TAK/NIE (głosem przez mikrofon), np. „Czy można mnie zjeść?”, a potem klikasz <b>ZADAŁEM PYTANIE</b>.</div></li>
+   <li><div><b>Odpowiedzi.</b> Pozostali odpowiadają Ci TAK albo NIE. Wskazówki zapisuj w prywatnym notatniku po lewej.</div></li>
+   <li><div><b>Zgadywanie.</b> Zamiast pytać, możesz wpisać swoje hasło i kliknąć <b>ZGADUJĘ!</b>. Pudło kosztuje Cię turę. Wielkość liter i polskie znaki nie mają znaczenia.</div></li>
+   <li><div><b>Koniec rundy.</b> Runda kończy się, gdy wszyscy odgadną hasła albo wyczerpią limit pytań. Wszystkie hasła zostają ujawnione, a potem startuje kolejna runda.</div></li>
+  </ol>
+  <div class="mbox"><h3>⚡ Punktacja</h3><ul>
+   <li>Im szybciej zgadniesz, tym więcej punktów: trafienie w pierwszej turze daje tyle punktów, ile wynosi limit pytań.</li>
+   <li>Każda kolejna tura (pytanie, pudło lub przegrany czas) odejmuje 1 punkt, ale zawsze dostajesz minimum 1.</li>
+   <li>Wygrywa gracz z największą liczbą punktów po ostatniej rundzie.</li></ul></div>
+  <div class="mbox"><h3>💡 Wskazówki</h3><ul>
+   <li>Zaczynaj od ogólnych pytań: „Czy jestem żywy?”, „Czy jestem miejscem?”, „Czy jestem znany?”.</li>
+   <li>Czas tury jest ograniczony, a gospodarz ustawia go w lobby razem z kategoriami.</li>
+   <li>Gra opiera się na rozmowie głosowej, więc włącz mikrofon (najlepiej też kamerę) albo rozmawiaj na zewnętrznym komunikatorze.</li></ul></div>
+  <button class="btn y" data-close>ROZUMIEM, GRAMY!</button>
+ </div>
+</div>
+<div id="toast"></div><div id="net" hidden>Utracono połączenie. Łączę ponownie…</div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const $=s=>document.querySelector(s),app=$('#app');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const COL=['#19c6e6','#ffd900','#2fe08a','#ff5a5f','#9be72f','#ff9f1a'];
+const CI={all:'🎲',zwierzeta:'🐾',jedzenie:'🍕',przedmioty:'🧰',miejsca:'📍',filmy:'🎬',gry:'🎮',sport:'⚽',ludzie:'⭐',muzyka:'🎵',internet:'🌐',trudne:'🧠'};
+const ERR={ROOM_FULL:'Pokój jest pełny',NO_ROOM:'Pokój nie istnieje',GAME_STARTED:'Gra już się rozpoczęła',INVALID_NICK:'Podaj nick (1–20 znaków)',NOT_ENOUGH_PLAYERS:'Potrzeba co najmniej 2 graczy',EMPTY_POOL:'Brak haseł w kategorii',NOT_ENOUGH_WORDS:'Za mało haseł dla tylu graczy',NOT_HOST:'Tylko gospodarz może to zrobić',TIME_UP:'Czas na turę minął',STALE_TURN:'Ta tura już się skończyła',NOT_ACTIVE_PLAYER:'To nie jest Twoja tura',NO_ACTIVE_ROUND:'Runda nie trwa'};
+const STAR='<path id="st" d="M0-18 5-6 18-5 8 4 11 17 0 10-11 17-8 4-18-5-5-6z"/>';
+/* logo: symetryczne gwiazdki, wszystko mieści się w viewBox i jest wycentrowane */
+const LOGO=`<svg class="logo" viewBox="0 0 520 200" role="img" aria-label="Czółko Game"><defs>${STAR}</defs><g font-family="Impact,'Arial Black',sans-serif" font-weight="900" text-anchor="middle" stroke-linejoin="round" style="paint-order:stroke"><text x="260" y="88" font-size="86" fill="#fff" stroke="#1a1a40" stroke-width="14" transform="rotate(-3 260 60)">CZÓŁKO</text><text x="260" y="180" font-size="98" fill="#ff9f1a" stroke="#1a1a40" stroke-width="14" transform="rotate(-2 260 140)">GAME</text></g><g fill="#ffd900" stroke="#1a1a40" stroke-width="3" stroke-linejoin="round"><use href="#st" transform="translate(34 64) scale(1.2)"/><use href="#st" transform="translate(486 64) scale(1.2)"/><use href="#st" transform="translate(26 150) scale(.8)"/><use href="#st" transform="translate(494 150) scale(.8)"/></g></svg>`;
+const CROWN='<svg class="crown" viewBox="0 0 40 30"><path d="M3 26 0 6l10 8 10-12 10 12 10-8-3 20z" fill="#ffd900" stroke="#1a1a40" stroke-width="2.5" stroke-linejoin="round"/></svg>';
+let CFG,sock,S={v:null,id:null,off:0,stream:null,pcs:{},streams:{},vids:{},joined:false,hide:false,nk:null,sc:null};
+const emit=(ev,p)=>new Promise(r=>sock.emit(ev,p,r));
+const toast=(m,ok)=>{const t=$('#toast');t.textContent=m;t.className=ok?'ok':'';clearTimeout(toast.t);toast.t=setTimeout(()=>t.textContent='',3000)};
+const fail=r=>{if(!r.ok)toast(ERR[r.error]||'Błąd: '+r.error);return r.ok};
+
+/* ---------- WebRTC (mesh, sygnalizacja przez Socket.IO) ---------- */
+const sig=(to,data)=>sock.emit('signal',{to,data});
+function closePeer(id){const p=S.pcs[id];if(p){p.pc.close();delete S.pcs[id]}delete S.streams[id]}
+function mkPeer(id,init){
+  closePeer(id);
+  const pc=new RTCPeerConnection({iceServers:CFG.iceServers}),p=S.pcs[id]={pc,q:[]};
+  if(S.stream)S.stream.getTracks().forEach(t=>pc.addTrack(t,S.stream));
+  else{pc.addTransceiver('video',{direction:'recvonly'});pc.addTransceiver('audio',{direction:'recvonly'})}
+  pc.onicecandidate=e=>e.candidate&&sig(id,{c:e.candidate});
+  pc.ontrack=e=>{S.streams[id]=e.streams[0];attachVideos()};
+  pc.onconnectionstatechange=()=>{if(pc.connectionState==='failed'&&init)pc.restartIce()};
+  if(init)pc.onnegotiationneeded=async()=>{try{await pc.setLocalDescription();sig(id,{d:pc.localDescription})}catch(e){console.warn(e)}};
+  return p;
+}
+function hello(){S.v.players.forEach(p=>{if(p.id!==S.id){sig(p.id,{hello:1});mkPeer(p.id,S.id<p.id)}})}
+function bindSignal(){sock.on('signal',async({from,data})=>{
+  try{
+    if(data.hello){mkPeer(from,S.id<from);return}
+    const p=S.pcs[from]||mkPeer(from,false),pc=p.pc;
+    if(data.d){await pc.setRemoteDescription(data.d);
+      if(data.d.type==='offer'){await pc.setLocalDescription();sig(from,{d:pc.localDescription})}
+      p.q.splice(0).forEach(c=>pc.addIceCandidate(c).catch(()=>{}))}
+    else if(data.c){pc.remoteDescription?pc.addIceCandidate(data.c).catch(()=>{}):p.q.push(data.c)}
+  }catch(e){console.warn('signal',e)}})}
+async function getMedia(){
+  if(!navigator.mediaDevices?.getUserMedia){toast('Ta przeglądarka nie obsługuje kamery (wymagane HTTPS lub localhost)');return false}
+  try{S.stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:360,frameRate:24},audio:true});return true}
+  catch(e){toast('Brak dostępu do kamery/mikrofonu. Zezwól w ustawieniach przeglądarki.');return false}
+}
+function stopMedia(){S.stream?.getTracks().forEach(t=>t.stop());S.stream=null;Object.keys(S.pcs).forEach(closePeer);S.vids={}}
+function attachVideos(){
+  if(!S.v)return;
+  S.v.players.forEach(p=>{
+    const st=p.id===S.id?S.stream:S.streams[p.id];
+    let v=S.vids[p.id];
+    if(!v){v=S.vids[p.id]=document.createElement('video');v.autoplay=true;v.playsInline=true;v.muted=p.id===S.id}
+    if(v.srcObject!==(st||null))v.srcObject=st||null;
+    v.style.display=st?'block':'none';
+    const slot=document.querySelector(`[data-slot="${p.id}"]`);
+    if(slot&&v.parentNode!==slot)slot.appendChild(v);
+  });
+}
+
+/* ---------- Notatnik (prywatny, tylko localStorage tej przeglądarki) ---------- */
+const nt=$('#nt');
+const saveNotes=()=>{if(S.nk)try{localStorage.setItem('czolko.notes.'+S.nk,nt.value)}catch{}};
+function syncNotes(code){
+  if(S.nk===code)return;
+  S.nk=code;
+  try{nt.value=localStorage.getItem('czolko.notes.'+code)||''}catch{nt.value=''}
+}
+nt.oninput=saveNotes;
+$('#notes').onclick=e=>{
+  const q=e.target.closest('[data-q]');
+  if(q){const s=nt.selectionStart,en=nt.selectionEnd,pre=s>0&&!/\s$/.test(nt.value.slice(0,s))?' ':'';
+    nt.setRangeText(pre+q.dataset.q+' ',s,en,'end');nt.focus();saveNotes();return}
+  if(e.target.closest('[data-n-close]'))document.body.classList.remove('notes-open');
+  if(e.target.closest('#nclear')){
+    const b=$('#nclear');
+    if(b.dataset.arm){nt.value='';saveNotes();b.dataset.arm='';b.textContent='Wyczyść'}
+    else{b.dataset.arm='1';b.textContent='Na pewno?';clearTimeout(b.t);b.t=setTimeout(()=>{b.dataset.arm='';b.textContent='Wyczyść'},3000)}
+  }
+};
+
+/* ---------- Okno „Jak grać" ---------- */
+const how=$('#how');let howFrom=null;
+function openHow(){howFrom=document.activeElement;how.hidden=false;how.querySelector('.mx').focus()}
+function closeHow(){how.hidden=true;howFrom?.focus?.()}
+how.onclick=e=>{if(e.target===how||e.target.closest('[data-close]'))closeHow()};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!how.hidden)closeHow()});
+
+/* ---------- Widoki ---------- */
+function home(msg=''){
+  const m=location.pathname.match(/\/room\/([A-Za-z0-9]{6})/);
+  app.innerHTML=`<div class="home">${LOGO}<p class="sub"></p><div class="box">
+  <input id="nick" maxlength="20" placeholder="Twój nick" value="${esc(localStorage.nick||'')}">
+  <button class="btn ghost" data-a="hcam">${S.stream?'Kamera włączona (kliknij, aby wyłączyć)':'Włącz kamerę i mikrofon (opcjonalnie)'}</button>
+  <button class="btn y" data-a="mk">STWÓRZ POKÓJ</button>
+  <div class="row"><input id="code" maxlength="6" placeholder="KOD" value="${m?m[1].toUpperCase():''}"><button class="btn" data-a="jn">DOŁĄCZ DO POKOJU</button></div>
+  <button class="btn ghost" data-a="how">JAK GRAĆ?</button><div class="msg">${esc(msg)}</div></div></div>`;
+}
+function enter(r){
+  if(!fail(r))return;
+  S.id=r.id;S.joined=false;sessionStorage.tok=r.token;history.replaceState(null,'','/room/'+r.code);
+}
+function leaveLocal(){
+  try{if(S.nk)localStorage.removeItem('czolko.notes.'+S.nk)}catch{}
+  S.nk=null;S.sc=null;nt.value='';
+  stopMedia();S.id=null;S.v=null;S.joined=false;sessionStorage.removeItem('tok');history.replaceState(null,'','/');
+  S.rk=null;$('#notes').hidden=true;document.body.classList.remove('room','notes-open')}
+const pl=n=>n===1?'runda':n<5?'rundy':'rund';
+
+function cfgHtml(v,host){
+  const s=v.settings,d=host?'':'disabled';
+  const seg=(k,arr,suf)=>`<div class="seg">${arr.map(x=>`<button type="button" data-a="set" data-k="${k}" data-v="${x}" class="${s[k]===x?'sel':''}" ${d}>${x}${suf}</button>`).join('')}</div>`;
+  const all=s.categories.includes('all');
+  const chip=(k,label)=>`<button type="button" class="chip${(all?k==='all':s.categories.includes(k))?' sel':''}" data-a="set" data-k="cat" data-v="${k}" ${d}><span aria-hidden="true">${CI[k]||'🔹'}</span>${esc(label)}</button>`;
+  return `<section class="cfg"><div class="cfg-h"><div>⚙️ Ustawienia gry</div><span>${host?'Ty ustawiasz zasady':'Ustawia gospodarz'}</span></div><div class="cfg-grid">
+  <div class="fld"><label>⏱ Czas na turę</label>${seg('turnSeconds',[15,20,30,45,60],' s')}</div>
+  <div class="fld"><label>🔁 Liczba rund</label><div class="step"><button type="button" data-a="set" data-k="rounds" data-d="-1" aria-label="Mniej rund" ${host&&s.rounds>1?'':'disabled'}>−</button><output>${s.rounds}<small>${pl(s.rounds)}</small></output><button type="button" data-a="set" data-k="rounds" data-d="1" aria-label="Więcej rund" ${host&&s.rounds<10?'':'disabled'}>+</button></div></div>
+  <div class="fld"><label>💬 Pytania na gracza</label>${seg('maxTurns',[5,8,10,15],'')}</div>
+  <div class="fld wide"><label>🗂 Kategorie haseł <span style="opacity:.7;text-transform:none;letter-spacing:0">(możesz wybrać kilka)</span></label><div class="chips">${chip('all','Wszystkie')}${Object.entries(CFG.categories).map(([k,l])=>chip(k,l)).join('')}</div></div>
+  </div></section>`;
+}
+
+function render(){
+  const v=S.v,me=v.players.find(p=>p.id===S.id);
+  if(!me){leaveLocal();return home('Nie jesteś już w tym pokoju')}
+  $('#notes').hidden=false;syncNotes(v.code);
+  document.body.classList.add('room');
+  const keep=$('#gi');let kv=keep?keep.value:'',kf=!!keep&&document.activeElement===keep;
+  if(S.lt!==v.turnId){kv='';kf=false}S.lt=v.turnId;
+  const host=v.hostId===S.id,act=v.activeId===S.id,max=Math.max(...v.players.map(p=>p.score));
+  const L=v.phase==='lobby',R=v.phase==='round',RV=v.phase==='reveal',MT=v.settings.maxTurns;
+  const mb=v.board[S.id],left=mb?MT-mb.turns:0,ap=v.players.find(p=>p.id===v.activeId);
+  const gain=id=>v.lastResult?.entries.find(e=>e.id===id)?.gained||0;
+  const up={};v.players.forEach(p=>{up[p.id]=!!S.sc&&S.sc[p.id]!==undefined&&p.score>S.sc[p.id]});
+  S.sc=Object.fromEntries(v.players.map(p=>[p.id,p.score]));
+  const banner={lobby:'Czekamy na graczy',round:act?'TWOJA TURA!':`Pyta: <b>${esc(ap?.nick||'')}</b>`,reveal:`Koniec rundy ${v.round}!`,finished:'Koniec gry'}[v.phase];
+  const hint=R?(act?`Zadaj jedno pytanie TAK/NIE albo spróbuj zgadnąć. Trafienie teraz: <b>${left}</b> pkt`:mb?.solved?'Odgadłeś swoje hasło! Odpowiadaj pozostałym.':left<=0?'Wyczerpałeś pytania. Odpowiadaj pozostałym.':`Odpowiadaj głosem · Twoje pytania: ${left}/${MT}`):RV?'Tak wyglądały hasła. Zaraz kolejna runda.':'';
+  const cards=v.players.map((p,i)=>{
+    const b=v.board[p.id];
+    let cls='st',lbl='',wd=p.connected?'W lobby':'OFFLINE';
+    if(b){
+      const mine=b.word===null;
+      cls=mine?'me':b.solved?'ok':RV?'no':'';
+      lbl=mine?'Twoje hasło':b.solved?'Odgadnięte ✔':RV?'Nieodgadnięte':'Hasło';
+      wd=mine?'? ? ?':esc(b.word);
+    }
+    const g=RV&&gain(p.id)?`<span class="gain">+${gain(p.id)}</span>`:'';
+    const qs=R&&b&&!b.solved?`<div class="qs" title="Pozostałe pytania">💬 ${MT-b.turns}</div>`:'';
+    return `<div class="card${v.activeId===p.id&&R?' on':''}${p.connected?'':' off'}" style="--c:${COL[i%6]}"><div class="frame"><div class="nick" title="${esc(p.nick)}"><span class="dot"></span><span class="nt">${esc(p.nick)}</span>${p.id===S.id?'<i class="you">TY</i>':''}${p.id===v.hostId?'<i class="host">HOST</i>':''}${p.connected?'':'<i class="off">OFFLINE</i>'}</div><div class="av">${esc([...p.nick][0].toUpperCase())}</div><div class="slot" data-slot="${p.id}"></div>${qs}${max>0&&p.score===max?CROWN:''}<div class="pts${up[p.id]?' up':''}" title="Punkty"><b>${p.score}</b><small>PKT</small></div>${host&&L&&p.id!==S.id?`<button class="kick" data-a="kick" data-id="${p.id}" title="Usuń gracza">✕</button>`:''}</div><div class="nm ${cls}">${lbl?`<span class="lbl">${lbl}</span>`:''}<span class="wd">${wd}${g}</span></div></div>`}).join('');
+  let main='';
+  if(L)main=host?`<button class="btn y" data-a="start" ${v.players.length>1?'':'disabled'}>NOWA GRA</button>`:`<div class="wait">⏳ Czekaj, aż gospodarz rozpocznie grę</div>`;
+  else if(R&&act)main=`<input id="gi" maxlength="60" placeholder="Wpisz swoje hasło…" autocomplete="off"><button class="btn g" data-a="guess">ZGADUJĘ!</button><button class="btn y sm" data-a="pass">ZADAŁEM PYTANIE ▶</button>`;
+  else if(R)main=`<div class="wait">${mb?.solved?'✔ Odgadłeś! Czekaj na pozostałych':left<=0?'Wyczerpałeś pytania. Czekaj na pozostałych':'⏳ Czekaj na swoją kolej'}</div>`;
+  else if(RV&&host)main=`<button class="btn y" data-a="next">DALEJ ▶</button>`;
+  else main=`<button class="btn y" disabled>NASTĘPNA RUNDA…</button>`;
+  const rank=[...v.players].sort((a,b)=>b.score-a.score),medal=['🥇','🥈','🥉'];
+  const res=v.phase==='finished'?`<div class="ov"><div class="res"><h2>${v.winners.length>1?'REMIS!':'ZWYCIĘZCA!'}</h2><div style="font-size:1.4rem;font-weight:800">${esc(v.players.filter(p=>v.winners.includes(p.id)).map(p=>p.nick).join(' i '))}</div><table>${rank.map((p,i)=>`<tr><td>${medal[i]||i+1+'.'}</td><td style="text-align:left">${esc(p.nick)}</td><td>${p.score} pkt</td><td>${p.correct} traf.</td></tr>`).join('')}</table>${host?'<button class="btn y" data-a="again">ZAGRAJ PONOWNIE</button>':'<div>Czekaj, aż gospodarz zacznie nową grę</div>'}<button class="btn" data-a="copy">Kopiuj zaproszenie</button><button class="btn ghost" data-a="leave">Wyjdź</button></div></div>`:'';
+  const key=v.phase+'|'+v.round+'|'+v.players.length,fa=document.activeElement,fsel=fa&&app.contains(fa)&&fa.dataset.a?'[data-a="'+fa.dataset.a+'"]'+['k','v','d'].filter(x=>fa.dataset[x]!==undefined).map(x=>'[data-'+x+'="'+fa.dataset[x]+'"]').join(''):null;
+  app.classList.toggle('still',S.rk===key);S.rk=key;
+  app.innerHTML=`<div class="top"><div class="pill">Runda ${v.round||'–'}${v.round?' / '+v.totalRounds:''}</div>${LOGO}<div class="pill">Pokój: ${v.code}<button class="btn ghost" style="min-height:0;padding:2px 10px" data-a="copy">Kopiuj</button></div></div><div class="banner${act&&R?' mine':''}">${banner}${R?'<span id="tm"></span>':''}</div><div class="sub2">${hint}</div>${L?cfgHtml(v,host):''}<div class="grid">${cards}</div><div class="panel"><div class="grp">${main}</div><div class="grp"><span class="pill">${v.players.length} / ${v.settings.maxPlayers} graczy</span><button class="btn ghost nbtn" data-a="notes">📝 Notatnik</button><button class="btn ghost" data-a="how">❓ Jak grać</button><button class="btn ghost" data-a="cv">${S.stream?(S.stream.getVideoTracks()[0]?.enabled?'Kamera: wł.':'Kamera: wył.'):'Włącz kamerę'}</button>${S.stream?`<button class="btn ghost" data-a="mic">Mikrofon: ${S.stream.getAudioTracks()[0]?.enabled?'wł.':'wył.'}</button>`:''}<button class="btn ghost" data-a="leave">Wyjdź</button></div></div>${res}`;
+  if(fsel){const f=app.querySelector(fsel);if(f&&!f.disabled)f.focus({preventScroll:true})}
+  const g=$('#gi');if(g&&kv){g.value=kv;if(kf){g.focus();g.setSelectionRange(kv.length,kv.length)}}
+  attachVideos();
+}
+
+/* ---------- Akcje ---------- */
+const nick=()=>{const n=$('#nick').value.trim();localStorage.nick=n;return n};
+function setOpt(el){
+  if(!S.v||S.v.hostId!==S.id)return;
+  const s=S.v.settings,k=el.dataset.k;
+  const p={categories:[...s.categories],rounds:s.rounds,turnSeconds:s.turnSeconds,maxTurns:s.maxTurns};
+  if(k==='cat'){
+    const key=el.dataset.v;let c=p.categories.includes('all')?[]:[...p.categories];
+    if(key==='all')c=['all'];
+    else{c=c.includes(key)?c.filter(x=>x!==key):[...c,key];if(!c.length)c=['all']}
+    p.categories=c;
+  }else if(k==='rounds')p.rounds=Math.min(10,Math.max(1,s.rounds+Number(el.dataset.d)));
+  else p[k]=Number(el.dataset.v);
+  return emit('settings',p).then(fail);
+}
+const A={
+  async hcam(){if(S.stream){stopMedia()}else await getMedia();home()},
+  async mk(){enter(await emit('create',{nick:nick()}))},
+  async jn(){enter(await emit('join',{code:$('#code').value,nick:nick()}))},
+  how:openHow,
+  notes(){document.body.classList.toggle('notes-open')},
+  set:setOpt,
+  start:()=>emit('start').then(fail),
+  async guess(){const i=$('#gi'),t=i?.value.trim();if(!t){toast('Wpisz swoje hasło');i?.focus();return}
+    const r=await emit('guess',{turnId:S.v.turnId,text:t});if(fail(r))r.correct?toast('Brawo! Zgadłeś!',1):toast('Pudło! Tura przechodzi dalej')},
+  pass:()=>emit('pass',{turnId:S.v.turnId}).then(fail),
+  next:()=>emit('next').then(fail),
+  again:()=>emit('again').then(fail),
+  kick:el=>emit('kick',{id:el.dataset.id}).then(fail),
+  async copy(){const u=location.origin+'/room/'+S.v.code;try{await navigator.clipboard.writeText(u);toast('Skopiowano link zaproszenia')}catch{prompt('Skopiuj link:',u)}},
+  async cv(){
+    if(!S.stream){if(await getMedia()){hello();attachVideos();render()}return}
+    const t=S.stream.getVideoTracks()[0];if(t)t.enabled=!t.enabled;render()},
+  mic(){const t=S.stream.getAudioTracks()[0];if(t)t.enabled=!t.enabled;render()},
+  async leave(){await emit('leave');leaveLocal();home()}
+};
+app.onclick=e=>{const el=e.target.closest('[data-a]');if(el&&!el.disabled)A[el.dataset.a]?.(el)};
+app.onkeydown=e=>{if(e.key==='Enter'&&e.target.id==='gi'){e.preventDefault();A.guess()}};
+setInterval(()=>{const t=$('#tm');if(t&&S.v?.deadline){const s=Math.max(0,Math.ceil((S.v.deadline-(Date.now()+S.off))/1000));t.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}},250);
+
+/* ---------- Start ---------- */
+(async()=>{
+  CFG=await (await fetch('/config')).json();
+  sock=io();bindSignal();
+  sock.on('state',v=>{
+    S.v=v;S.off=v.now-Date.now();if(!S.id)return;
+    if(!S.joined){S.joined=true;hello()}
+    Object.keys(S.pcs).forEach(id=>{if(!v.players.some(p=>p.id===id))closePeer(id)});
+    render();
+  });
+  sock.on('kicked',()=>{leaveLocal();home('Gospodarz usunął Cię z pokoju')});
+  sock.on('disconnect',()=>$('#net').hidden=false);
+  sock.on('connect',async()=>{
+    $('#net').hidden=true;
+    const tok=sessionStorage.tok;if(!tok)return;
+    const r=await emit('resume',{token:tok});
+    if(r.ok){S.id=r.id;S.joined=false}else{leaveLocal();home(ERR[r.error]||'')}
+  });
+  if(!sessionStorage.tok)home();
+})();
+</script></body></html>
