@@ -2,6 +2,7 @@
 <html lang="pl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Czółko z Ekipą</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-25 -25 50 50'%3E%3Cpath d='M0-18 5-6 18-5 8 4 11 17 0 10-11 17-8 4-18-5-5-6z' fill='%23ffd900' stroke='%231a1a40' stroke-width='3' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
 *{box-sizing:border-box}
 :root{--ink:#0b2a6b;--glass:rgba(8,48,150,.42);--line:rgba(255,255,255,.3)}
@@ -133,7 +134,7 @@ background:#fffbe6 repeating-linear-gradient(transparent 0 27px,#d6dcf0 27px 28p
 .nbtn{display:none}
 @media(min-width:1240px){
  #notes{left:18px;top:50%;transform:translateY(-50%);width:320px;height:min(70dvh,580px)}
- body.room #app{padding-left:346px;padding-right:18px}}
+ body.room #app{padding-left:346px;padding-right:346px}}
 @media(max-width:1239px){
  #notes{display:none}
  body.notes-open #notes{display:flex;left:8px;right:8px;top:8px;bottom:8px;z-index:25}
@@ -209,29 +210,109 @@ const toast=(m,ok)=>{const t=$('#toast');t.textContent=m;t.className=ok?'ok':'';
 const fail=r=>{if(!r.ok)toast(ERR[r.error]||'Błąd: '+r.error);return r.ok};
 
 /* ---------- WebRTC (mesh, sygnalizacja przez Socket.IO) ---------- */
+/* ---------- WebRTC (mesh, sygnalizacja przez Socket.IO) ---------- */
 const sig=(to,data)=>sock.emit('signal',{to,data});
-function closePeer(id){const p=S.pcs[id];if(p){p.pc.close();delete S.pcs[id]}delete S.streams[id]}
-function mkPeer(id,init){
-  closePeer(id);
-  const pc=new RTCPeerConnection({iceServers:CFG.iceServers}),p=S.pcs[id]={pc,q:[]};
-  if(S.stream)S.stream.getTracks().forEach(t=>pc.addTrack(t,S.stream));
-  else{pc.addTransceiver('video',{direction:'recvonly'});pc.addTransceiver('audio',{direction:'recvonly'})}
-  pc.onicecandidate=e=>e.candidate&&sig(id,{c:e.candidate});
-  pc.ontrack=e=>{S.streams[id]=e.streams[0];attachVideos()};
-  pc.onconnectionstatechange=()=>{if(pc.connectionState==='failed'&&init)pc.restartIce()};
-  if(init)pc.onnegotiationneeded=async()=>{try{await pc.setLocalDescription();sig(id,{d:pc.localDescription})}catch(e){console.warn(e)}};
+
+function closePeer(id){
+  const p=S.pcs[id];
+  if(p){try{p.pc.close()}catch{}delete S.pcs[id]}
+  delete S.streams[id];
+  delete S.vids[id];
+}
+
+/* Dodaje lokalne ścieżki do istniejącego peera. Zwraca true, jeśli coś dodano. */
+function addLocalTracks(pc){
+  if(!S.stream) return false;
+  const senders=pc.getSenders();
+  let added=false;
+  S.stream.getTracks().forEach(t=>{
+    if(!senders.some(s=>s.track===t)){ pc.addTrack(t,S.stream); added=true; }
+  });
+  return added;
+}
+
+function ensurePeer(id){
+  if(S.pcs[id]) return S.pcs[id];
+  const pc=new RTCPeerConnection({iceServers:CFG.iceServers});
+  // Perfect negotiation: "polite" to ten z wyższym ID (ustępuje przy glare)
+  const p=S.pcs[id]={pc,q:[],polite:S.id>id,makingOffer:false,ignoreOffer:false};
+
+  if(S.stream) addLocalTracks(pc);
+  else{
+    pc.addTransceiver('video',{direction:'recvonly'});
+    pc.addTransceiver('audio',{direction:'recvonly'});
+  }
+
+  pc.onicecandidate=e=>{ if(e.candidate) sig(id,{c:e.candidate}); };
+
+  pc.ontrack=e=>{
+    if(e.streams[0]) S.streams[id]=e.streams[0];
+    else if(!S.streams[id]) S.streams[id]=new MediaStream([e.track]);
+    else S.streams[id].addTrack(e.track);
+    attachVideos();
+  };
+
+  pc.onnegotiationneeded=async()=>{
+    try{
+      p.makingOffer=true;
+      await pc.setLocalDescription();
+      sig(id,{d:pc.localDescription});
+    }catch(err){ console.warn('nego',err); }
+    finally{ p.makingOffer=false; }
+  };
+
+  pc.onconnectionstatechange=()=>{
+    if(pc.connectionState==='failed') pc.restartIce();
+  };
+
   return p;
 }
-function hello(){S.v.players.forEach(p=>{if(p.id!==S.id){sig(p.id,{hello:1});mkPeer(p.id,S.id<p.id)}})}
-function bindSignal(){sock.on('signal',async({from,data})=>{
-  try{
-    if(data.hello){mkPeer(from,S.id<from);return}
-    const p=S.pcs[from]||mkPeer(from,false),pc=p.pc;
-    if(data.d){await pc.setRemoteDescription(data.d);
-      if(data.d.type==='offer'){await pc.setLocalDescription();sig(from,{d:pc.localDescription})}
-      p.q.splice(0).forEach(c=>pc.addIceCandidate(c).catch(()=>{}))}
-    else if(data.c){pc.remoteDescription?pc.addIceCandidate(data.c).catch(()=>{}):p.q.push(data.c)}
-  }catch(e){console.warn('signal',e)}})}
+
+/* Tworzy peery dla wszystkich w pokoju i dodaje ewentualne nowe ścieżki
+   do już istniejących peerów (bez ich niszczenia!). */
+function hello(){
+  if(!S.v) return;
+  S.v.players.forEach(pl=>{
+    if(pl.id===S.id) return;
+    const p=ensurePeer(pl.id);
+    addLocalTracks(p.pc);
+    sig(pl.id,{hello:1});
+  });
+}
+
+function bindSignal(){
+  sock.on('signal',async({from,data})=>{
+    try{
+      if(data.hello){
+        const p=ensurePeer(from);
+        addLocalTracks(p.pc);
+        return;
+      }
+
+      const p=ensurePeer(from),pc=p.pc;
+
+      if(data.d){
+        const offerCollision=data.d.type==='offer'&&(p.makingOffer||pc.signalingState!=='stable');
+        p.ignoreOffer=!p.polite&&offerCollision;
+        if(p.ignoreOffer) return;
+
+        if(offerCollision&&p.polite){
+          await pc.setLocalDescription({type:'rollback'});
+        }
+        await pc.setRemoteDescription(data.d);
+
+        if(data.d.type==='offer'){
+          await pc.setLocalDescription();
+          sig(from,{d:pc.localDescription});
+        }
+        p.q.splice(0).forEach(c=>pc.addIceCandidate(c).catch(()=>{}));
+      }else if(data.c){
+        if(pc.remoteDescription) await pc.addIceCandidate(data.c).catch(()=>{});
+        else p.q.push(data.c);
+      }
+    }catch(e){ console.warn('signal',e); }
+  });
+}
 async function getMedia(){
   if(!navigator.mediaDevices?.getUserMedia){toast('Ta przeglądarka nie obsługuje kamery (wymagane HTTPS lub localhost)');return false}
   try{S.stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:360,frameRate:24},audio:true});return true}
@@ -386,9 +467,19 @@ const A={
   again:()=>emit('again').then(fail),
   kick:el=>emit('kick',{id:el.dataset.id}).then(fail),
   async copy(){const u=location.origin+'/room/'+S.v.code;try{await navigator.clipboard.writeText(u);toast('Skopiowano link zaproszenia')}catch{prompt('Skopiuj link:',u)}},
-  async cv(){
-    if(!S.stream){if(await getMedia()){hello();attachVideos();render()}return}
-    const t=S.stream.getVideoTracks()[0];if(t)t.enabled=!t.enabled;render()},
+async cv(){
+  if(!S.stream){
+    if(await getMedia()){
+      hello();
+      attachVideos();
+      render();
+    }
+    return;
+  }
+  const t=S.stream.getVideoTracks()[0];
+  if(t) t.enabled=!t.enabled;
+  render();
+},
   mic(){const t=S.stream.getAudioTracks()[0];if(t)t.enabled=!t.enabled;render()},
   async leave(){await emit('leave');leaveLocal();home()}
 };
