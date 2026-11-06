@@ -319,6 +319,7 @@ background:#fffbe6 repeating-linear-gradient(transparent 0 27px,#d6dcf0 27px 28p
 </div>
 <div id="toast"></div><div id="net" hidden>Utracono połączenie. Łączę ponownie…</div>
 <script src="/socket.io/socket.io.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
 const $=s=>document.querySelector(s),app=$('#app');
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -330,129 +331,88 @@ const STAR='<path id="st" d="M0-18 5-6 18-5 8 4 11 17 0 10-11 17-8 4-18-5-5-6z"/
 /* logo: symetryczne gwiazdki, wszystko mieści się w viewBox i jest wycentrowane */
 const LOGO=`<svg class="logo" viewBox="0 0 520 200" role="img" aria-label="Kim Jestem"><defs>${STAR}<linearGradient id="lgP" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b2dff"/><stop offset=".55" stop-color="#5b4bff"/><stop offset="1" stop-color="#1fa2ff"/></linearGradient><linearGradient id="lgK" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2ff3c8"/><stop offset="1" stop-color="#19c2ff"/></linearGradient><linearGradient id="lgS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><g transform="rotate(-2 260 110)"><rect x="22" y="48" width="476" height="136" rx="46" fill="#1a1a40" transform="translate(0 9)"/><rect x="22" y="48" width="476" height="136" rx="46" fill="url(#lgP)" stroke="#fff" stroke-width="7"/><rect x="40" y="58" width="440" height="52" rx="26" fill="url(#lgS)"/><g font-family="Impact,'Arial Black',sans-serif" font-weight="900" text-anchor="middle" stroke-linejoin="round" style="paint-order:stroke"><text x="265" y="159" font-size="88" textLength="360" lengthAdjust="spacingAndGlyphs" fill="#1a1a40" stroke="#1a1a40" stroke-width="12">JESTEM</text><text x="260" y="152" font-size="88" textLength="360" lengthAdjust="spacingAndGlyphs" fill="#fff" stroke="#1a1a40" stroke-width="9">JESTEM</text></g></g><g transform="rotate(-7 110 38)"><rect x="40" y="12" width="148" height="56" rx="28" fill="#1a1a40" transform="translate(0 5)"/><rect x="40" y="12" width="148" height="56" rx="28" fill="url(#lgK)" stroke="#fff" stroke-width="5"/><text x="114" y="55" font-family="Impact,'Arial Black',sans-serif" font-weight="900" font-size="42" text-anchor="middle" fill="#1a1a40" textLength="96" lengthAdjust="spacingAndGlyphs">KIM</text></g><g fill="#fff" stroke="#1a1a40" stroke-width="3" stroke-linejoin="round"><use href="#st" transform="translate(470 40) scale(1.1)"/><use href="#st" transform="translate(500 82) scale(.65)"/></g></svg>`;
 const CROWN='<svg class="crown" viewBox="0 0 40 30"><path d="M3 26 0 6l10 8 10-12 10 12 10-8-3 20z" fill="#ffd900" stroke="#1a1a40" stroke-width="2.5" stroke-linejoin="round"/></svg>';
-let CFG,sock,S={spin:{},v:null,id:null,off:0,stream:null,pcs:{},streams:{},vids:{},joined:false,hide:false,nk:null,sc:null,showCode:false};
+let CFG,sock,S={spin:{},v:null,id:null,off:0,stream:null,calls:{},streams:{},vids:{},joined:false,hide:false,nk:null,sc:null,showCode:false};
 const emit=(ev,p)=>new Promise(r=>sock.emit(ev,p,r));
 const toast=(m,ok)=>{const t=$('#toast');t.textContent=m;t.className=ok?'ok':'';clearTimeout(toast.t);toast.t=setTimeout(()=>t.textContent='',3000)};
 const fail=r=>{if(!r.ok)toast(ERR[r.error]||'Błąd: '+r.error);return r.ok};
 
-/* ---------- WebRTC (mesh, sygnalizacja przez Socket.IO) ---------- */
-/* ---------- WebRTC (mesh, sygnalizacja przez Socket.IO) ---------- */
-const sig=(to,data)=>sock.emit('signal',{to,data});
+/* ---------- Kamery: PeerJS (WebRTC; sygnalizację robi chmura PeerJS, a nie Socket.IO) ----------
+   ID peera = prefiks + ID gracza z serwera gry. Dzięki temu każdy wie, pod jaki adres zadzwonić
+   do kogoś z listy graczy, a kod pokoju nie jest do tego potrzebny. */
+const PEER_PREFIX='czolko-kimjestem-';
+let peer=null,peerRetry=0;
+const pid=id=>PEER_PREFIX+id;
+const fromPid=x=>x.startsWith(PEER_PREFIX)?x.slice(PEER_PREFIX.length):x;
 
-function closePeer(id){
-  const p=S.pcs[id];
-  if(p){try{p.pc.close()}catch{}delete S.pcs[id]}
-  delete S.streams[id];
-  delete S.vids[id];
+/* Domyślna konfiguracja PeerJS ma własne STUN/TURN. Nadpisujemy ją tylko, gdy w .env jest Twój TURN. */
+function peerOpts(){
+  const extra=(CFG?.iceServers||[]).filter(x=>!String(x.urls).startsWith('stun:'));
+  return extra.length?{config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:global.stun.twilio.com:3478'},...extra]}}:{};
 }
 
-/* Dodaje lokalne ścieżki do istniejącego peera. Zwraca true, jeśli coś dodano. */
-function addLocalTracks(pc){
-  if(!S.stream) return false;
-  const senders = pc.getSenders();
-  let added = false;
-  S.stream.getTracks().forEach(t=>{
-    if(!senders.some(s=>s.track===t)){ pc.addTrack(t,S.stream); added=true; }
+function initPeer(){
+  if(peer||!S.id||typeof Peer==='undefined')return;
+  const p=peer=new Peer(pid(S.id),peerOpts());
+  p.on('open',()=>{peerRetry=0;syncCalls()});
+  p.on('call',onIncoming);
+  p.on('disconnected',()=>{if(peer===p&&!p.destroyed)p.reconnect()});
+  p.on('error',e=>{
+    if(e.type==='peer-unavailable')return; // druga osoba jeszcze nie jest gotowa – syncCalls ponowi próbę
+    if(e.type==='unavailable-id'&&peerRetry<15){ // stary peer po odświeżeniu strony jeszcze wisi na serwerze
+      peerRetry++;try{p.destroy()}catch{}if(peer===p)peer=null;setTimeout(initPeer,2000);return}
+    console.warn('PeerJS:',e.type,e);
   });
-  // KLUCZOWE: addTrack() nie zmienia kierunku transceivera (zostaje 'recvonly'),
-  // przez co SDP nadal mówi "nie wysyłam" i media nie lecą.
-  // Ręcznie promujemy transceivery z podpiętym trackiem do 'sendrecv'.
-  for(const tr of pc.getTransceivers()){
-    if(tr.sender.track && tr.direction === 'recvonly'){
-      tr.direction = 'sendrecv'; // wywoła negotiationneeded → renegotiation
+}
+function destroyPeer(){Object.keys(S.calls).forEach(dropCall);try{peer?.destroy()}catch{}peer=null;peerRetry=0}
+
+function dropCall(id){
+  const c=S.calls[id];delete S.calls[id];delete S.streams[id];
+  if(c)try{c.close()}catch{}
+}
+function bindCall(id,call,local){
+  call.t=Date.now();call.local=local;S.calls[id]=call;
+  call.on('stream',st=>{S.streams[id]=st;attachVideos()});
+  const gone=()=>{if(S.calls[id]===call){delete S.calls[id];delete S.streams[id];attachVideos()}};
+  call.on('close',gone);call.on('error',gone);
+}
+
+/* Ktoś do nas dzwoni. Odbieramy z własną kamerą, jeśli ją mamy (bez kamery tylko oglądamy). */
+function onIncoming(call){
+  const id=fromPid(call.peer),old=S.calls[id];
+  // Kolizja (dzwonimy do siebie nawzajem): zostaje połączenie zainicjowane przez gracza o mniejszym ID.
+  if(old&&old.out&&S.stream&&S.id<id){call.close();return}
+  if(old)dropCall(id);
+  call.answer(S.stream||undefined);
+  bindCall(id,call,S.stream);
+}
+
+/* Dzwoni do wszystkich graczy w pokoju, z którymi nie mamy działającego połączenia. Wywoływane
+   przy każdym stanie gry, po włączeniu kamery i co kilka sekund (ponawia nieudane próby). */
+function syncCalls(){
+  if(!S.v)return;
+  Object.keys(S.calls).forEach(id=>{if(!S.v.players.some(p=>p.id===id))dropCall(id)});
+  if(!peer||!peer.open||!S.stream)return;
+  S.v.players.forEach(p=>{
+    if(p.id===S.id||!p.connected)return;
+    const c=S.calls[p.id];
+    if(c){
+      if(c.open&&c.local===S.stream)return;          // działa i niesie nasz obraz
+      if(!c.open&&Date.now()-c.t<8000)return;        // jeszcze się łączy
+      dropCall(p.id);
     }
-  }
-  return added;
-}
-
-function ensurePeer(id){
-  if(S.pcs[id]) return S.pcs[id];
-  const pc=new RTCPeerConnection({iceServers:CFG.iceServers});
-  // Perfect negotiation: "polite" to ten z wyższym ID (ustępuje przy glare)
-  const p=S.pcs[id]={pc,q:[],polite:S.id>id,makingOffer:false,ignoreOffer:false};
-
-  if(S.stream) addLocalTracks(pc);
-  else{
-    pc.addTransceiver('video',{direction:'recvonly'});
-    pc.addTransceiver('audio',{direction:'recvonly'});
-  }
-
-  pc.onicecandidate=e=>{ if(e.candidate) sig(id,{c:e.candidate}); };
-
-  pc.ontrack=e=>{
-    if(e.streams[0]) S.streams[id]=e.streams[0];
-    else if(!S.streams[id]) S.streams[id]=new MediaStream([e.track]);
-    else S.streams[id].addTrack(e.track);
-    attachVideos();
-  };
-
-  pc.onnegotiationneeded=async()=>{
-    try{
-      p.makingOffer=true;
-      await pc.setLocalDescription();
-      sig(id,{d:pc.localDescription});
-    }catch(err){ console.warn('nego',err); }
-    finally{ p.makingOffer=false; }
-  };
-
-  pc.onconnectionstatechange=()=>{
-    if(pc.connectionState==='failed') pc.restartIce();
-  };
-
-  return p;
-}
-
-/* Tworzy peery dla wszystkich w pokoju i dodaje ewentualne nowe ścieżki
-   do już istniejących peerów (bez ich niszczenia!). */
-function hello(){
-  if(!S.v) return;
-  S.v.players.forEach(pl=>{
-    if(pl.id===S.id) return;
-    const p=ensurePeer(pl.id);
-    addLocalTracks(p.pc);
-    sig(pl.id,{hello:1});
+    const call=peer.call(pid(p.id),S.stream);
+    if(!call)return;
+    call.out=true;bindCall(p.id,call,S.stream);
   });
 }
+setInterval(syncCalls,4000);
 
-function bindSignal(){
-  sock.on('signal',async({from,data})=>{
-    try{
-      if(data.hello){
-        const p=ensurePeer(from);
-        addLocalTracks(p.pc);
-        return;
-      }
-
-      const p=ensurePeer(from),pc=p.pc;
-
-      if(data.d){
-        const offerCollision=data.d.type==='offer'&&(p.makingOffer||pc.signalingState!=='stable');
-        p.ignoreOffer=!p.polite&&offerCollision;
-        if(p.ignoreOffer) return;
-
-        if(offerCollision&&p.polite){
-          await pc.setLocalDescription({type:'rollback'});
-        }
-        await pc.setRemoteDescription(data.d);
-
-        if(data.d.type==='offer'){
-          await pc.setLocalDescription();
-          sig(from,{d:pc.localDescription});
-        }
-        p.q.splice(0).forEach(c=>pc.addIceCandidate(c).catch(()=>{}));
-      }else if(data.c){
-        if(pc.remoteDescription) await pc.addIceCandidate(data.c).catch(()=>{});
-        else p.q.push(data.c);
-      }
-    }catch(e){ console.warn('signal',e); }
-  });
-}
 async function getMedia(){
   if(!navigator.mediaDevices?.getUserMedia){toast('Ta przeglądarka nie obsługuje kamery (wymagane HTTPS lub localhost)');return false}
   try{S.stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:360,frameRate:24},audio:true});return true}
   catch(e){toast('Brak dostępu do kamery/mikrofonu. Zezwól w ustawieniach przeglądarki.');return false}
 }
-function stopMedia(){S.stream?.getTracks().forEach(t=>t.stop());S.stream=null;Object.keys(S.pcs).forEach(closePeer);S.vids={}}
+function stopMedia(){S.stream?.getTracks().forEach(t=>t.stop());S.stream=null;Object.keys(S.calls).forEach(dropCall);S.vids={}}
 function attachVideos(){
   if(!S.v)return;
   S.v.players.forEach(p=>{
@@ -529,7 +489,7 @@ async function resumeSaved(){
 function leaveLocal(){
   try{if(S.nk)localStorage.removeItem('czolko.notes.'+S.nk)}catch{}
   S.nk=null;S.sc=null;nt.value='';
-  stopMedia();S.id=null;S.v=null;S.joined=false;S.showCode=false;sessionStorage.removeItem('tok');setSaved(null);history.replaceState(null,'','/');
+  stopMedia();destroyPeer();S.id=null;S.v=null;S.joined=false;S.showCode=false;sessionStorage.removeItem('tok');setSaved(null);history.replaceState(null,'','/');
   S.rk=null;$('#notes').hidden=true;document.body.classList.remove('room','notes-open');app.classList.remove('lobbyview')}
 const pl=n=>n===1?'runda':n<5?'rundy':'rund';
 
@@ -704,10 +664,10 @@ const A={
   again:()=>emit('again').then(fail),
   kick:el=>emit('kick',{id:el.dataset.id}).then(fail),
   async copy(){const u=location.origin+'/room/'+S.v.code;try{await navigator.clipboard.writeText(u);toast('Skopiowano link zaproszenia')}catch{prompt('Skopiuj link:',u)}},
-async cv(){
-  if(!S.stream){
-    if(await getMedia()){
-      hello();
+async cv() {
+  if (!S.stream) {
+    if (await getMedia()) {
+      syncCalls();
       attachVideos();
       render();
     }
@@ -728,13 +688,21 @@ setInterval(()=>{const t=$('#tm');if(t&&S.v?.deadline){const s=Math.max(0,Math.c
 /* ---------- Start ---------- */
 (async()=>{
   CFG=await (await fetch('/config')).json();
-  sock=io();bindSignal();
-  sock.on('state',v=>{
-    S.v=v;S.off=v.now-Date.now();if(!S.id)return;
-    if(!S.joined){S.joined=true;hello()}
-    Object.keys(S.pcs).forEach(id=>{if(!v.players.some(p=>p.id===id))closePeer(id)});
-    render();
-  });
+  sock=io();
+sock.on('state', v => {
+  S.v = v;
+  S.off = v.now - Date.now();
+  if (!S.id) return;
+  
+  if (!S.joined) {
+    S.joined = true;
+  }
+
+  initPeer();
+  syncCalls();
+
+  render();
+});
   sock.on('ding',playDing);
   sock.on('kicked',()=>{leaveLocal();home('Gospodarz usunął Cię z pokoju')});
   sock.on('disconnect',()=>$('#net').hidden=false);

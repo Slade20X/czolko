@@ -17,7 +17,11 @@ const sockets = new Map<string, Socket>();
 const emptySince = new Map<string, number>();
 const str = (v: unknown, n = 40) => String(v ?? '').slice(0, n);
 
-const iceServers: object[] = [{ urls: 'stun:stun.l.google.com:19302' }];
+const iceServers: object[] = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun2.l.google.com:19302' }
+];
 if (process.env.TURN_URL) iceServers.push({ urls: process.env.TURN_URL, username: process.env.TURN_USER, credential: process.env.TURN_PASS });
 const config = { iceServers, categories: Object.fromEntries(Object.entries(CATEGORIES).map(([k, c]) => [k, c.label])) };
 
@@ -107,15 +111,19 @@ io.on('connection', (s) => {
     return { token, id, code: room.code };
   }, false);
 
-  on('resume', (p) => {
-    const ses = sessions.get(str(p.token, 60));
-    const room = ses && rooms.get(ses.code);
-    if (!ses || !room || !room.players.some((x) => x.id === ses.id)) throw new G.GameError('NO_ROOM');
-    sockets.get(ses.id)?.disconnect(true); // jedno połączenie na gracza
-    G.setConnected(room, ses.id, true); attach(room, ses.id);
-    queueMicrotask(() => broadcast(room));
-    return { id: ses.id, code: room.code };
-  }, false);
+on('resume', (p) => {
+  const ses = sessions.get(str(p.token, 60));
+  const room = ses && rooms.get(ses.code);
+  if (!ses || !room || !room.players.some((x) => x.id === ses.id)) throw new G.GameError('NO_ROOM');
+  
+  // Usuń stary socket i przypisz nowy
+  sockets.get(ses.id)?.disconnect(true);
+  G.setConnected(room, ses.id, true);
+  attach(room, ses.id); 
+
+  queueMicrotask(() => broadcast(room));
+  return { id: ses.id, code: room.code };
+}, false);
 
   on('settings', (p, room) => {
     G.updateSettings(room, me!.id, {
@@ -148,10 +156,16 @@ io.on('connection', (s) => {
     if (text && pl) io.to(room.code).emit('chat', { from: pl.nick, text, t: Date.now() });
   });
 on('signal', (p, room) => {
-  const target = sockets.get(p.to);
-  console.log('signal', me!.id.slice(0,6), '->', String(p.to).slice(0,6),
-    'w pokoju:', room.players.some((x) => x.id === p.to), 'socket:', !!target, 'connected:', target?.connected);
-  if (room.players.some((x) => x.id === p.to)) target?.emit('signal', { from: me!.id, data: p.data });
+  const targetId = str(p.to, 60);
+  const targetSocket = sockets.get(targetId);
+  const isPlayerInRoom = room.players.some((x) => x.id === targetId);
+
+  if (!isPlayerInRoom || !targetSocket) {
+    console.warn(`[WebRTC Signal Error] Nadawca: ${me?.id} -> Odbiorca: ${targetId} | W pokoju: ${isPlayerInRoom} | Socket znaleziony: ${!!targetSocket}`);
+    return;
+  }
+
+  targetSocket.emit('signal', { from: me!.id, data: p.data });
 });
   on('leave', (_p, room) => {
     const id = me!.id;
