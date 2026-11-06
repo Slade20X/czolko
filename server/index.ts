@@ -111,9 +111,12 @@ io.on('connection', (s) => {
     const pl = room.players.find((x) => x.id === me!.id);
     if (text && pl) io.to(room.code).emit('chat', { from: pl.nick, text, t: Date.now() });
   });
-  on('signal', (p, room) => {
-    if (room.players.some((x) => x.id === p.to)) sockets.get(p.to)?.emit('signal', { from: me!.id, data: p.data });
-  });
+on('signal', (p, room) => {
+  const target = sockets.get(p.to);
+  console.log('signal', me!.id.slice(0,6), '->', String(p.to).slice(0,6),
+    'w pokoju:', room.players.some((x) => x.id === p.to), 'socket:', !!target, 'connected:', target?.connected);
+  if (room.players.some((x) => x.id === p.to)) target?.emit('signal', { from: me!.id, data: p.data });
+});
   on('leave', (_p, room) => {
     const nick = room.players.find((x) => x.id === me!.id)?.nick;
     const empty = G.removePlayer(room, me!.id);

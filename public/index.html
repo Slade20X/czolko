@@ -424,7 +424,7 @@ function render(){
     if(b){
       const mine=b.word===null;
       cls=mine?'me':b.solved?'ok':RV?'no':'';
-      lbl=mine?'Twoje hasło':b.solved?'Odgadnięte ✔':RV?'Nieodgadnięte':'Hasło';
+      lbl=mine?'':b.solved?'Odgadnięte ✔':RV?'Nieodgadnięte':'';
       wd=mine?'? ? ?':esc(b.word);
     }
     const g=RV&&gain(p.id)?`<span class="gain">+${gain(p.id)}</span>`:'';
