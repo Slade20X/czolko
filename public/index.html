@@ -46,7 +46,7 @@ background:conic-gradient(from var(--a),#00e5ff,#3d7bff,#b84dff,#ff4fa3,#ffd900,
 @keyframes led{to{--a:360deg}}
 .off .frame{opacity:.5}
 .slot,.slot video,.av{position:absolute;inset:0;width:100%;height:100%;border-radius:21px;overflow:hidden}
-.slot video{object-fit:cover}
+.slot video{object-fit:cover;width:100%;height:100%}
 .av{display:grid;place-items:center;font-size:clamp(2rem,6vw,4rem);font-weight:800;color:#6fb2ff}
 /* punkty: biała plakietka w prawym górnym rogu kamerki */
 .pts{position:absolute;top:clamp(6px,3cqw,10px);right:clamp(6px,3cqw,10px);z-index:5;width:clamp(44px,21cqw,66px);aspect-ratio:1;border-radius:clamp(12px,6cqw,18px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
@@ -327,7 +327,6 @@ const CI={all:'dice',zwierzeta:'paw',jedzenie:'utensils',przedmioty:'box',miejsc
 const ic=(n,c='')=>`<svg class="ic ${c}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 const ERR={ROOM_FULL:'Pokój jest pełny',NO_ROOM:'Pokój nie istnieje',GAME_STARTED:'Gra już trwa. Wróć tym samym nickiem, którego używałeś(aś) wcześniej',INVALID_NICK:'Podaj nick (1–20 znaków)',NOT_ENOUGH_PLAYERS:'Potrzeba co najmniej 2 graczy',EMPTY_POOL:'Brak haseł w kategorii',NOT_ENOUGH_WORDS:'Za mało haseł dla tylu graczy',NOT_HOST:'Tylko gospodarz może to zrobić',TIME_UP:'Czas na turę minął',STALE_TURN:'Ta tura już się skończyła',NOT_ACTIVE_PLAYER:'To nie jest Twoja tura',NO_ACTIVE_ROUND:'Runda nie trwa',PLAYER_ONLINE:'Gracz o tym nicku jest już w grze'};
 const STAR='<path id="st" d="M0-18 5-6 18-5 8 4 11 17 0 10-11 17-8 4-18-5-5-6z"/>';
-/* logo: symetryczne gwiazdki, wszystko mieści się w viewBox i jest wycentrowane */
 const LOGO=`<svg class="logo" viewBox="0 0 520 200" role="img" aria-label="Kim Jestem"><defs>${STAR}<linearGradient id="lgP" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b2dff"/><stop offset=".55" stop-color="#5b4bff"/><stop offset="1" stop-color="#1fa2ff"/></linearGradient><linearGradient id="lgK" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2ff3c8"/><stop offset="1" stop-color="#19c2ff"/></linearGradient><linearGradient id="lgS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><g transform="rotate(-2 260 110)"><rect x="22" y="48" width="476" height="136" rx="46" fill="#1a1a40" transform="translate(0 9)"/><rect x="22" y="48" width="476" height="136" rx="46" fill="url(#lgP)" stroke="#fff" stroke-width="7"/><rect x="40" y="58" width="440" height="52" rx="26" fill="url(#lgS)"/><g font-family="Impact,'Arial Black',sans-serif" font-weight="900" text-anchor="middle" stroke-linejoin="round" style="paint-order:stroke"><text x="265" y="159" font-size="88" textLength="360" lengthAdjust="spacingAndGlyphs" fill="#1a1a40" stroke="#1a1a40" stroke-width="12">JESTEM</text><text x="260" y="152" font-size="88" textLength="360" lengthAdjust="spacingAndGlyphs" fill="#fff" stroke="#1a1a40" stroke-width="9">JESTEM</text></g></g><g transform="rotate(-7 110 38)"><rect x="40" y="12" width="148" height="56" rx="28" fill="#1a1a40" transform="translate(0 5)"/><rect x="40" y="12" width="148" height="56" rx="28" fill="url(#lgK)" stroke="#fff" stroke-width="5"/><text x="114" y="55" font-family="Impact,'Arial Black',sans-serif" font-weight="900" font-size="42" text-anchor="middle" fill="#1a1a40" textLength="96" lengthAdjust="spacingAndGlyphs">KIM</text></g><g fill="#fff" stroke="#1a1a40" stroke-width="3" stroke-linejoin="round"><use href="#st" transform="translate(470 40) scale(1.1)"/><use href="#st" transform="translate(500 82) scale(.65)"/></g></svg>`;
 const CROWN='<svg class="crown" viewBox="0 0 40 30"><path d="M3 26 0 6l10 8 10-12 10 12 10-8-3 20z" fill="#ffd900" stroke="#1a1a40" stroke-width="2.5" stroke-linejoin="round"/></svg>';
 let CFG,sock,S={spin:{},v:null,id:null,off:0,stream:null,pcs:{},streams:{},vids:{},joined:false,hide:false,nk:null,sc:null,showCode:false};
@@ -336,30 +335,33 @@ const toast=(m,ok)=>{const t=$('#toast');t.textContent=m;t.className=ok?'ok':'';
 const fail=r=>{if(!r.ok)toast(ERR[r.error]||'Błąd: '+r.error);return r.ok};
 
 /* ---------- WebRTC (mesh, sygnalizacja przez Socket.IO) ---------- */
-/* ---------- WebRTC (mesh, sygnalizacja przez Socket.IO) ---------- */
 const sig=(to,data)=>sock.emit('signal',{to,data});
 
 function closePeer(id){
   const p=S.pcs[id];
   if(p){try{p.pc.close()}catch{}delete S.pcs[id]}
   delete S.streams[id];
-  delete S.vids[id];
+  if(S.vids[id]){
+    try{S.vids[id].remove()}catch{}
+    delete S.vids[id];
+  }
 }
 
-/* Dodaje lokalne ścieżki do istniejącego peera. Zwraca true, jeśli coś dodano. */
 function addLocalTracks(pc){
   if(!S.stream) return false;
   const senders = pc.getSenders();
   let added = false;
   S.stream.getTracks().forEach(t=>{
-    if(!senders.some(s=>s.track===t)){ pc.addTrack(t,S.stream); added=true; }
+    if(!senders.some(s=>s.track===t)){ 
+      pc.addTrack(t,S.stream); 
+      added = true; 
+    }
   });
-  // KLUCZOWE: addTrack() nie zmienia kierunku transceivera (zostaje 'recvonly'),
-  // przez co SDP nadal mówi "nie wysyłam" i media nie lecą.
-  // Ręcznie promujemy transceivery z podpiętym trackiem do 'sendrecv'.
+
   for(const tr of pc.getTransceivers()){
-    if(tr.sender.track && tr.direction === 'recvonly'){
-      tr.direction = 'sendrecv'; // wywoła negotiationneeded → renegotiation
+    if(tr.sender.track && (tr.direction === 'recvonly' || tr.direction === 'inactive')){
+      tr.direction = 'sendrecv';
+      added = true;
     }
   }
   return added;
@@ -368,7 +370,6 @@ function addLocalTracks(pc){
 function ensurePeer(id){
   if(S.pcs[id]) return S.pcs[id];
   const pc=new RTCPeerConnection({iceServers:CFG.iceServers});
-  // Perfect negotiation: "polite" to ten z wyższym ID (ustępuje przy glare)
   const p=S.pcs[id]={pc,q:[],polite:S.id>id,makingOffer:false,ignoreOffer:false};
 
   if(S.stream) addLocalTracks(pc);
@@ -402,8 +403,6 @@ function ensurePeer(id){
   return p;
 }
 
-/* Tworzy peery dla wszystkich w pokoju i dodaje ewentualne nowe ścieżki
-   do już istniejących peerów (bez ich niszczenia!). */
 function hello(){
   if(!S.v) return;
   S.v.players.forEach(pl=>{
@@ -419,7 +418,11 @@ function bindSignal(){
     try{
       if(data.hello){
         const p=ensurePeer(from);
-        addLocalTracks(p.pc);
+        if(addLocalTracks(p.pc)){
+          const offer = await p.pc.createOffer();
+          await p.pc.setLocalDescription(offer);
+          sig(from, { d: p.pc.localDescription });
+        }
         return;
       }
 
@@ -447,28 +450,51 @@ function bindSignal(){
     }catch(e){ console.warn('signal',e); }
   });
 }
+
 async function getMedia(){
   if(!navigator.mediaDevices?.getUserMedia){toast('Ta przeglądarka nie obsługuje kamery (wymagane HTTPS lub localhost)');return false}
-  try{S.stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:360,frameRate:24},audio:true});return true}
-  catch(e){toast('Brak dostępu do kamery/mikrofonu. Zezwól w ustawieniach przeglądarki.');return false}
+  try{
+    S.stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:360,frameRate:24},audio:true});
+    return true;
+  }catch(e){toast('Brak dostępu do kamery/mikrofonu. Zezwól w ustawieniach przeglądarki.');return false}
 }
-function stopMedia(){S.stream?.getTracks().forEach(t=>t.stop());S.stream=null;Object.keys(S.pcs).forEach(closePeer);S.vids={}}
+
+function stopMedia(){
+  S.stream?.getTracks().forEach(t=>t.stop());
+  S.stream=null;
+  Object.keys(S.pcs).forEach(closePeer);
+  S.vids={};
+}
+
 function attachVideos(){
   if(!S.v)return;
   S.v.players.forEach(p=>{
     const st=p.id===S.id?S.stream:S.streams[p.id];
     let v=S.vids[p.id];
-    if(!v){v=S.vids[p.id]=document.createElement('video');v.autoplay=true;v.playsInline=true;v.muted=p.id===S.id}
-    if(v.srcObject!==(st||null))v.srcObject=st||null;
+    if(!v){
+      v=S.vids[p.id]=document.createElement('video');
+      v.autoplay=true;
+      v.playsInline=true;
+      v.muted=(p.id===S.id);
+      v.setAttribute('data-vid-id', p.id);
+    }
+    if(v.srcObject!==(st||null)) v.srcObject=st||null;
     v.style.display=st?'block':'none';
-    let park=document.getElementById('vpark');if(!park){park=document.createElement('div');park.id='vpark';park.style.cssText='position:fixed;width:0;height:0;overflow:hidden;pointer-events:none';document.body.appendChild(park)}
+    
+    let park=document.getElementById('vpark');
+    if(!park){
+      park=document.createElement('div');
+      park.id='vpark';
+      park.style.cssText='position:fixed;width:0;height:0;overflow:hidden;pointer-events:none';
+      document.body.appendChild(park);
+    }
     const slot=document.querySelector(`[data-slot="${p.id}"]`)||park;
-    if(slot&&v.parentNode!==slot)slot.appendChild(v);
-    if(st&&v.paused)v.play().catch(()=>{});
+    if(slot && v.parentNode!==slot) slot.appendChild(v);
+    if(st && v.paused) v.play().catch(()=>{});
   });
 }
 
-/* ---------- Notatnik (prywatny, tylko localStorage tej przeglądarki) ---------- */
+/* ---------- Notatnik ---------- */
 const nt=$('#nt');
 const saveNotes=()=>{if(S.nk)try{localStorage.setItem('czolko.notes.'+S.nk,nt.value)}catch{}};
 function syncNotes(code){
@@ -510,7 +536,6 @@ function home(msg=''){
   <button class="btn ghost" data-a="how">${ic('help')}JAK GRAĆ?</button><div class="msg">${esc(msg)}</div></div>
   <div class="made"><a href="https://mktlab.pl/strony-www" target="_blank" rel="noopener">${ic('heart')}Made by MKT</a></div></div>`;
 }
-/* Zapamiętana sesja (localStorage): pozwala wrócić do gry po zamknięciu karty. Kod pokoju nie jest tu przechowywany. */
 const SAVED='czolko.session';
 const getSaved=()=>{try{return JSON.parse(localStorage.getItem(SAVED)||'null')}catch{return null}};
 const setSaved=o=>{try{o?localStorage.setItem(SAVED,JSON.stringify(o)):localStorage.removeItem(SAVED)}catch{}};
@@ -518,7 +543,7 @@ function enter(r){
   if(!fail(r))return;
   S.id=r.id;S.joined=false;S.showCode=false;sessionStorage.tok=r.token;setSaved({token:r.token});
   if(r.rejoined)toast('Wracasz do gry!',1);
-  history.replaceState(null,'','/'); // kod nie ma świecić w pasku adresu (streamy)
+  history.replaceState(null,'','/');
 }
 async function resumeSaved(){
   const sv=getSaved();if(!sv?.token)return;
@@ -547,7 +572,6 @@ function plistHtml(v,host){
 }
 function cfgHtml(v,host){
   const s=v.settings,d=host?'':'disabled',tab=S.cfgTab==='presets'?'presets':'custom';
-  /* lista rozwijana; jeśli aktualna wartość nie jest na liście (np. 7 rund), dodajemy ją */
   const sel=(k,vals,fmt)=>{
     const arr=[...new Set([...vals,s[k]])].sort((a,b)=>(a||1e9)-(b||1e9));
     return `<div class="cfg-sel"><select data-a="set" data-k="${k}" aria-label="${k}" ${d}>${arr.map(x=>`<option value="${x}"${x===s[k]?' selected':''}>${fmt(x)}</option>`).join('')}</select></div>`;
@@ -571,9 +595,7 @@ function cfgHtml(v,host){
   return `<section class="cfg"><div class="cfg-tabs" role="tablist"><button type="button" role="tab" aria-selected="${tab==='presets'}" class="cfg-tab${tab==='presets'?' sel':''}" data-a="cfgtab" data-v="presets">Gotowe zestawy</button><button type="button" role="tab" aria-selected="${tab==='custom'}" class="cfg-tab${tab==='custom'?' sel':''}" data-a="cfgtab" data-v="custom">Własne ustawienia</button></div><div class="cfg-body" role="tabpanel">${body}</div></section>`;
 }
 
-const PSTAR='<svg viewBox="-20 -20 40 40" aria-hidden="true"><path d="M0-18 5-6 18-5 8 4 11 17 0 10-11 17-8 4-18-5-5-6z"/></svg>';
 const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches,SPIN_MS=1600;
-/* „spin": litery losują się jak w automacie i zatrzymują kolejno od lewej */
 function tickSpins(){
   const now=Date.now();
   for(const id of Object.keys(S.spin)){
@@ -595,9 +617,8 @@ function tickSpins(){
   }
 }
 setInterval(tickSpins,60);
-/* Dźwięk trafienia (WebAudio, 30% głośności). Kontekst odblokowuje pierwsze kliknięcie/klawisz w stronie. */
 let AC=null,DBUF=null,DLOAD=null;
-const DING=new Audio('/nba02.mp3');DING.volume=.3;DING.preload='auto'; // plan B, gdyby WebAudio nie działało
+const DING=new Audio('/nba02.mp3');DING.volume=.3;DING.preload='auto';
 function unlockAudio(){
   try{
     AC=AC||new (window.AudioContext||window.webkitAudioContext)();
@@ -682,7 +703,25 @@ function setOpt(el){
   return emit('settings',p).then(fail);
 }
 const A={
-  async hcam(){if(S.stream){stopMedia()}else await getMedia();home()},
+  async hcam(){
+    if(S.stream){
+      stopMedia();
+    }else{
+      if(await getMedia()){
+        Object.keys(S.pcs).forEach(id=>{
+          const p=S.pcs[id];
+          if(addLocalTracks(p.pc)){
+            p.pc.createOffer().then(offer=>p.pc.setLocalDescription(offer)).then(()=>{
+              sig(id,{d:p.pc.localDescription});
+            }).catch(err=>console.warn('offer error',err));
+          }
+        });
+        hello();
+        attachVideos();
+      }
+    }
+    render();
+  },
   back:()=>resumeSaved(),
   eye(){S.showCode=!S.showCode;render()},
   async mk(){enter(await emit('create',{nick:nick()}))},
@@ -704,19 +743,27 @@ const A={
   again:()=>emit('again').then(fail),
   kick:el=>emit('kick',{id:el.dataset.id}).then(fail),
   async copy(){const u=location.origin+'/room/'+S.v.code;try{await navigator.clipboard.writeText(u);toast('Skopiowano link zaproszenia')}catch{prompt('Skopiuj link:',u)}},
-async cv(){
-  if(!S.stream){
-    if(await getMedia()){
-      hello();
-      attachVideos();
-      render();
+  async cv(){
+    if(!S.stream){
+      if(await getMedia()){
+        Object.keys(S.pcs).forEach(id=>{
+          const p=S.pcs[id];
+          if(addLocalTracks(p.pc)){
+            p.pc.createOffer().then(offer=>p.pc.setLocalDescription(offer)).then(()=>{
+              sig(id,{d:p.pc.localDescription});
+            }).catch(err=>console.warn('offer error',err));
+          }
+        });
+        hello();
+        attachVideos();
+        render();
+      }
+      return;
     }
-    return;
-  }
-  const t=S.stream.getVideoTracks()[0];
-  if(t) t.enabled=!t.enabled;
-  render();
-},
+    const t=S.stream.getVideoTracks()[0];
+    if(t) t.enabled=!t.enabled;
+    render();
+  },
   mic(){const t=S.stream.getAudioTracks()[0];if(t)t.enabled=!t.enabled;render()},
   async leave(){await emit('leave');leaveLocal();home()}
 };
@@ -747,3 +794,5 @@ setInterval(()=>{const t=$('#tm');if(t&&S.v?.deadline){const s=Math.max(0,Math.c
   if(!sessionStorage.tok)home();
 })();
 </script></body></html>
+
+```
