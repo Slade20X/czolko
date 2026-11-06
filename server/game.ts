@@ -10,7 +10,7 @@ export class GameError extends Error {
 
 type Rng = () => number;
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const TURN_SECONDS = [15, 20, 30, 45, 60];
+const TURN_SECONDS = [0, 15, 20, 30, 45, 60]; // 0 = bez limitu czasu (tura trwa do kliknięcia „Zadałem pytanie” lub pudła)
 export const REVEAL_MS = 8000; // jak długo widać hasła po zakończeniu rundy
 const clamp = (n: number, a: number, b: number) => (Number.isFinite(n) ? Math.min(b, Math.max(a, Math.trunc(n))) : a);
 
@@ -120,7 +120,8 @@ function pickNext(room: Room, from: number): number {
 function startTurn(room: Room, idx: number, now: number): void {
   room.cursor = idx;
   room.activeId = room.order[idx]!;
-  room.deadline = now + room.settings.turnSeconds * 1000;
+  // Bez limitu: deadline = Infinity (nigdy nie mija), do klienta idzie jako null (patrz viewFor).
+  room.deadline = room.settings.turnSeconds > 0 ? now + room.settings.turnSeconds * 1000 : Number.POSITIVE_INFINITY;
   room.turnId += 1;
 }
 
@@ -285,7 +286,7 @@ export function viewFor(room: Room, viewerId: string): RoomView {
     code: room.code, hostId: room.hostId, players: room.players,
     settings: { ...rest, customWordsCount: customWords.length },
     phase: room.phase, round: room.round, totalRounds: room.settings.rounds,
-    activeId: room.activeId, turnId: room.turnId, deadline: room.deadline, board,
+    activeId: room.activeId, turnId: room.turnId, deadline: Number.isFinite(room.deadline) ? room.deadline : null, board,
     lastResult: room.lastResult,
     winners: room.phase === 'finished' ? winners(room) : [],
   };
