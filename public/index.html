@@ -488,7 +488,7 @@ async function resumeSaved(){
 }
 function leaveLocal(){
   try{if(S.nk)localStorage.removeItem('czolko.notes.'+S.nk)}catch{}
-  S.nk=null;S.sc=null;nt.value='';
+  S.nk=null;S.sc=null;S.pr=undefined;nt.value='';
   stopMedia();destroyPeer();S.id=null;S.v=null;S.joined=false;S.showCode=false;sessionStorage.removeItem('tok');setSaved(null);history.replaceState(null,'','/');
   S.rk=null;$('#notes').hidden=true;document.body.classList.remove('room','notes-open');app.classList.remove('lobbyview')}
 const pl=n=>n===1?'runda':n<5?'rundy':'rund';
@@ -588,6 +588,7 @@ function render(){
   const gain=id=>v.lastResult?.entries.find(e=>e.id===id)?.gained||0;
   const up={};v.players.forEach(p=>{up[p.id]=!!S.sc&&S.sc[p.id]!==undefined&&p.score>S.sc[p.id]});
   S.sc=Object.fromEntries(v.players.map(p=>[p.id,p.score]));
+  const newRound=R&&S.pr!==undefined&&v.round!==S.pr;S.pr=v.round; // start rundy: hasła losują się z efektem spina
   const banner={lobby:'Czekamy na graczy',round:act?'TWOJA TURA!':`Pyta: <b>${esc(ap?.nick||'')}</b>`,reveal:`Koniec rundy ${v.round}!`,finished:'Koniec gry'}[v.phase];
   const cards=v.players.map((p,i)=>{
     const b=v.board[p.id];
@@ -598,7 +599,7 @@ function render(){
       lbl=mine?'Twoje hasło':b.solved?ic('check')+'Odgadnięte':RV?'Nieodgadnięte':'Hasło';
       wd=mine?'? ? ?':esc(b.word);
     }
-    if(R&&b&&!b.solved&&up[p.id]&&!REDUCED)S.spin[p.id]=Date.now();
+    if(R&&b&&!b.solved&&(up[p.id]||newRound)&&!REDUCED)S.spin[p.id]=Date.now();
     const g=RV&&gain(p.id)?`<span class="gain">+${gain(p.id)}</span>`:'';
     return `<div class="card${v.activeId===p.id&&R?' on':''}${p.connected?'':' off'}" style="--c:${COL[i%6]}"><div class="frame"><div class="av">${esc([...p.nick][0].toUpperCase())}</div><div class="slot" data-slot="${p.id}"></div>${max>0&&p.score===max?CROWN:''}<div class="pts${up[p.id]?' up':''}" title="Punkty"><b>${p.score}</b></div>${host&&L&&p.id!==S.id?`<button class="kick" data-a="kick" data-id="${p.id}" title="Usuń gracza" aria-label="Usuń gracza">${ic('x')}</button>`:''}</div><div class="nm ${cls}" data-nm="${p.id}">${lbl?`<span class="lbl">${lbl}</span>`:''}<span class="wd" data-final="${wd}">${wd}${g}</span></div></div>`}).join('');
   let main='';
