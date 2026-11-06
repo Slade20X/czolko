@@ -67,6 +67,20 @@ export function joinRoom(room: Room, id: string, nick: string): Player {
   return p;
 }
 
+/**
+ * Powrót do rozpoczętej gry: gracz, który wypadł (odświeżenie, zamknięta karta, utrata sieci),
+ * odzyskuje swoje miejsce i punkty po nicku. Dotyczy tylko rozłączonych graczy.
+ */
+export function reclaimPlayer(room: Room, nick: string): Player {
+  const key = normalizeNick(nick).toLocaleLowerCase('pl');
+  const same = room.players.filter((p) => p.nick.toLocaleLowerCase('pl') === key);
+  if (same.length === 0) throw new GameError('GAME_STARTED');
+  const p = same.find((x) => !x.connected);
+  if (!p) throw new GameError('PLAYER_ONLINE');
+  p.connected = true;
+  return p;
+}
+
 export function setConnected(room: Room, id: string, connected: boolean): void {
   const p = room.players.find((x) => x.id === id);
   if (p) p.connected = connected;

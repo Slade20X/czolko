@@ -9,6 +9,8 @@ import type { Room } from '../lib/types';
 
 const PORT = Number(process.env.PORT ?? 3000);
 const HTML = path.resolve(process.cwd(), 'public/index.html');
+const NOT_FOUND = path.resolve(process.cwd(), 'public/404.html');
+const MP3 = path.resolve(process.cwd(), 'public/nba02.mp3');
 const rooms = new Map<string, Room>();
 const sessions = new Map<string, { code: string; id: string }>();
 const sockets = new Map<string, Socket>();
@@ -24,8 +26,33 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return void res.end(JSON.stringify(config));
   }
-  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-  res.end(fs.readFileSync(HTML));
+  if (req.url?.startsWith('/nba02.mp3')) {
+    // Pełna obsługa Content-Length i Range (Safari/iOS i część przeglądarek bez tego nie odtwarza audio).
+    const buf = fs.readFileSync(MP3);
+    const base = { 'Content-Type': 'audio/mpeg', 'Accept-Ranges': 'bytes', 'Cache-Control': 'public, max-age=86400' };
+    const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
+    if (m && (m[1] || m[2])) {
+      const start = m[1] ? Number(m[1]) : Math.max(0, buf.length - Number(m[2]));
+      const end = m[1] && m[2] ? Math.min(Number(m[2]), buf.length - 1) : buf.length - 1;
+      if (start > end || start >= buf.length) {
+        res.writeHead(416, { 'Content-Range': `bytes */${buf.length}` });
+        return void res.end();
+      }
+      res.writeHead(206, { ...base, 'Content-Range': `bytes ${start}-${end}/${buf.length}`, 'Content-Length': end - start + 1 });
+      return void res.end(req.method === 'HEAD' ? undefined : buf.subarray(start, end + 1));
+    }
+    res.writeHead(200, { ...base, 'Content-Length': buf.length });
+    return void res.end(req.method === 'HEAD' ? undefined : buf);
+  }
+  // Strona główna i linki zaproszeń /room/KOD → gra; cokolwiek innego → własne 404.
+  const pathname = (req.url ?? '/').split('?')[0]!.split('#')[0]!;
+  const known = pathname === '/' || pathname === '/index.html' || /^\/room\/[A-Za-z0-9]{6}\/?$/.test(pathname);
+  if (known && (req.method === 'GET' || req.method === 'HEAD')) {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    return void res.end(fs.readFileSync(HTML));
+  }
+  res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+  res.end(fs.readFileSync(NOT_FOUND));
 });
 const io = new Server(server, { maxHttpBufferSize: 1e5 });
 
@@ -65,7 +92,15 @@ io.on('connection', (s) => {
   on('join', (p) => {
     const room = rooms.get(str(p.code, 6).toUpperCase().trim());
     if (!room) throw new G.GameError('NO_ROOM');
-    const id = randomUUID(), token = randomUUID();
+    const token = randomUUID();
+    if (room.phase !== 'lobby') {
+      // Gra trwa: wpuszczamy tylko kogoś, kto już w niej był (ten sam nick, obecnie offline).
+      const pl = G.reclaimPlayer(room, str(p.nick, 60));
+      sessions.set(token, { code: room.code, id: pl.id }); attach(room, pl.id);
+      queueMicrotask(() => { sys(room, `${pl.nick} wrócił(a) do gry`); broadcast(room); });
+      return { token, id: pl.id, code: room.code, rejoined: true };
+    }
+    const id = randomUUID();
     const pl = G.joinRoom(room, id, str(p.nick, 60));
     sessions.set(token, { code: room.code, id }); attach(room, id);
     queueMicrotask(() => { sys(room, `${pl.nick} dołączył(a)`); broadcast(room); });
@@ -99,6 +134,7 @@ io.on('connection', (s) => {
     const text = str(p.text, 60).trim();
     const nick = room.players.find((x) => x.id === me!.id)?.nick ?? '';
     const r = G.guess(room, me!.id, Number(p.turnId), text, Date.now());
+    if (r.correct) io.to(room.code).emit('ding'); // dźwięk trafienia słyszą wszyscy w pokoju
     sys(room, r.correct ? `${nick} zgadł(a) hasło „${r.word}” i zdobywa ${r.gained} pkt!` : `${nick} zgaduje „${text}” i pudłuje`);
     broadcast(room);
     return { correct: r.correct };
@@ -118,9 +154,18 @@ on('signal', (p, room) => {
   if (room.players.some((x) => x.id === p.to)) target?.emit('signal', { from: me!.id, data: p.data });
 });
   on('leave', (_p, room) => {
-    const nick = room.players.find((x) => x.id === me!.id)?.nick;
-    const empty = G.removePlayer(room, me!.id);
-    s.leave(room.code); sockets.delete(me!.id); me = null;
+    const id = me!.id;
+    const nick = room.players.find((x) => x.id === id)?.nick;
+    const inGame = room.phase === 'round' || room.phase === 'reveal';
+    s.leave(room.code); sockets.delete(id); me = null;
+    if (inGame) {
+      // W trakcie gry gracz tylko wypada (punkty zostają) i może wrócić tym samym nickiem.
+      G.setConnected(room, id, false);
+      if (room.hostId === id) { const o = room.players.find((x) => x.connected); if (o) room.hostId = o.id; }
+      sys(room, `${nick} opuścił(a) grę (może wrócić)`); broadcast(room);
+      return;
+    }
+    const empty = G.removePlayer(room, id);
     if (empty) rooms.delete(room.code); else { sys(room, `${nick} opuścił(a) pokój`); broadcast(room); }
   });
 

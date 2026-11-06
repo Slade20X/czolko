@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   createRoom, joinRoom, startGame, guess, endTurn, tick, nextRound, viewFor, removePlayer, kick,
-  setConnected, updateSettings, GameError, REVEAL_MS,
+  setConnected, updateSettings, reclaimPlayer, GameError, REVEAL_MS,
 } from '../server/game';
 import { buildPool, foldWord, CATEGORIES } from '../data/words';
 
@@ -248,6 +248,35 @@ describe('koniec rundy i gry', () => {
     expect(viewFor(r, 'p2').winners).toEqual(['p1']);
     r.players[1]!.score = 2;
     expect(viewFor(r, 'p2').winners).toEqual(['p1', 'p2']);
+  });
+});
+
+describe('powrót do rozpoczętej gry', () => {
+  it('rozłączony gracz wraca po nicku (bez względu na wielkość liter) i zachowuje punkty', () => {
+    const r = setup(3);
+    startGame(r, 'p1', 0, rng);
+    guess(r, 'p1', r.turnId, word(r, 'p1'), 1);
+    setConnected(r, 'p1', false);
+    const p = reclaimPlayer(r, ' ala ');
+    expect(p.id).toBe('p1');
+    expect(p.connected).toBe(true);
+    expect(p.score).toBeGreaterThan(0);
+    expect(r.secrets.p1).toBeDefined();
+  });
+  it('odrzuca obcy nick i nick gracza, który jest online', () => {
+    const r = setup(2);
+    startGame(r, 'p1', 0, rng);
+    expect(code(() => reclaimPlayer(r, 'Ktoś'))).toBe('GAME_STARTED');
+    expect(code(() => reclaimPlayer(r, 'Ala'))).toBe('PLAYER_ONLINE');
+  });
+  it('po powrocie gracz znów dostaje tury', () => {
+    const r = setup(3);
+    startGame(r, 'p1', 0, rng);
+    setConnected(r, 'p2', false);
+    reclaimPlayer(r, 'Gracz2');
+    const order: string[] = [];
+    for (let i = 0; i < 3; i++) { order.push(r.activeId!); endTurn(r, r.activeId!, r.turnId, 2); }
+    expect(order).toEqual(['p1', 'p2', 'p3']);
   });
 });
 
