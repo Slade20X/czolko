@@ -35,14 +35,14 @@ function broadcast(room: Room) {
 
 io.on('connection', (s) => {
   let me: { code: string; id: string } | null = null;
-  let hits = 0;
-  const reset = setInterval(() => (hits = 0), 1000);
+  let hits = 0, sigHits = 0;
+  const reset = setInterval(() => { hits = 0; sigHits = 0; }, 1000);
   const attach = (room: Room, id: string) => { me = { code: room.code, id }; sockets.set(id, s); s.join(room.code); emptySince.delete(room.code); };
   const sys = (room: Room, text: string) => io.to(room.code).emit('chat', { sys: 1, text, t: Date.now() });
 
   const on = (ev: string, fn: (p: any, room: Room) => object | void, needRoom = true) =>
     s.on(ev, (p: any, ack?: (r: object) => void) => {
-      if (++hits > 40) return; // ochrona przed spamem
+      if (ev === 'signal' ? ++sigHits > 600 : ++hits > 40) return; // spam
       try {
         const room = me ? rooms.get(me.code) : undefined;
         if (needRoom && !room) throw new G.GameError('NO_ROOM');

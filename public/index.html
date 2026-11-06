@@ -223,11 +223,19 @@ function closePeer(id){
 /* Dodaje lokalne ścieżki do istniejącego peera. Zwraca true, jeśli coś dodano. */
 function addLocalTracks(pc){
   if(!S.stream) return false;
-  const senders=pc.getSenders();
-  let added=false;
+  const senders = pc.getSenders();
+  let added = false;
   S.stream.getTracks().forEach(t=>{
     if(!senders.some(s=>s.track===t)){ pc.addTrack(t,S.stream); added=true; }
   });
+  // KLUCZOWE: addTrack() nie zmienia kierunku transceivera (zostaje 'recvonly'),
+  // przez co SDP nadal mówi "nie wysyłam" i media nie lecą.
+  // Ręcznie promujemy transceivery z podpiętym trackiem do 'sendrecv'.
+  for(const tr of pc.getTransceivers()){
+    if(tr.sender.track && tr.direction === 'recvonly'){
+      tr.direction = 'sendrecv'; // wywoła negotiationneeded → renegotiation
+    }
+  }
   return added;
 }
 
@@ -329,6 +337,7 @@ function attachVideos(){
     v.style.display=st?'block':'none';
     const slot=document.querySelector(`[data-slot="${p.id}"]`);
     if(slot&&v.parentNode!==slot)slot.appendChild(v);
+    if(st&&v.paused)v.play().catch(()=>{});
   });
 }
 
@@ -507,4 +516,6 @@ setInterval(()=>{const t=$('#tm');if(t&&S.v?.deadline){const s=Math.max(0,Math.c
   });
   if(!sessionStorage.tok)home();
 })();
+
+document.addEventListener('click',()=>Object.values(S.vids).forEach(v=>{if(v.srcObject&&v.paused)v.play().catch(()=>{})}));
 </script></body></html>
