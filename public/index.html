@@ -2,7 +2,8 @@
 <html lang="pl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>KIM JESTEM</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ff2e93'/%3E%3Cstop offset='1' stop-color='%23ff9f1a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='4' y='8' width='56' height='54' rx='16' fill='%231a1a40'/%3E%3Crect x='4' y='4' width='56' height='54' rx='16' fill='url(%23g)' stroke='%23fff' stroke-width='4'/%3E%3Ctext x='32' y='44' font-family='Impact,Arial Black,sans-serif' font-weight='900' font-size='38' text-anchor='middle' fill='%23fff' stroke='%231a1a40' stroke-width='4' paint-order='stroke'%3EK%3C/text%3E%3Cpath d='M52 6l2 5 5 2-5 2-2 5-2-5-5-2 5-2z' fill='%23ffd900' stroke='%231a1a40' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" type="image/png" sizes="256x256" href="/favicon.png?v=2">
+<link rel="apple-touch-icon" href="/favicon.png?v=2">
 <style>
 *{box-sizing:border-box}
 :root{--ink:#2d1470;--glass:rgba(76,36,160,.55);--line:rgba(255,255,255,.3)}
@@ -13,7 +14,7 @@ background:radial-gradient(2px 2px at 10% 20%,#d6b8ff,transparent),radial-gradie
 @keyframes tw{to{opacity:.15}}
 button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 #app{position:relative;min-height:100dvh;padding:max(14px,env(safe-area-inset-top)) 16px max(14px,env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:14px}
-.logo{height:clamp(80px,17vh,180px);filter:drop-shadow(0 6px 8px rgba(0,0,0,.4))}
+.logo{height:clamp(80px,17vh,180px);width:auto;max-width:100%;object-fit:contain;filter:drop-shadow(0 6px 8px rgba(0,0,0,.4))}
 /* pasek górny: logo ZAWSZE na środku (siatka 1fr auto 1fr) */
 .top{width:100%;max-width:1000px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px}
 .top>:first-child{justify-self:start}.top>:last-child{justify-self:end}
@@ -28,23 +29,29 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .banner.mine #tm,.tmrow.mine #tm{background:#3a2a00;color:#ffd900}
 .tmrow{display:flex;justify-content:center;align-items:center;min-height:44px;margin:-4px 0}
 .tmrow #tm{font-size:clamp(1.1rem,2.4vw,1.6rem);font-weight:900;padding:4px 20px;box-shadow:0 8px 24px rgba(20,6,60,.28)}
-.grid{flex:1;display:flex;flex-wrap:wrap;justify-content:center;align-content:center;gap:40px 28px;max-width:1000px;width:100%;padding:24px 0 26px}
+.grid{flex:1;display:flex;flex-wrap:wrap;justify-content:center;align-content:center;--gx:48px;gap:44px var(--gx);max-width:1100px;width:100%;padding:18px 0 20px}
 
 /* ---- karta gracza ---- */
-.card{width:clamp(150px,30%,300px);container-type:inline-size;animation:pop .4s both,float var(--fd,5s) ease-in-out var(--fo,0s) infinite}
+.card{width:clamp(150px,min(calc((100% - 2*var(--gx))/3),33vh,290px),290px);container-type:inline-size;animation:pop .4s both,float var(--fd,5s) ease-in-out var(--fo,0s) infinite}
 @keyframes float{0%,100%{translate:0 0}50%{translate:0 -9px}}
-@media (prefers-reduced-motion:reduce){#notes,#app,#ntab,#ntab span{transition:none!important}.top .logo,.card,.on .frame::before,.on .frame::after{animation:none!important}}
+@media (prefers-reduced-motion:reduce){#notes,#app,#ntab,#ntab span{transition:none!important}.top .logo,.card{animation:none!important}}
 @keyframes pop{from{transform:scale(.8);opacity:0}}
 .frame{position:relative;isolation:isolate;aspect-ratio:16/10;border:3px solid var(--c);border-radius:24px;background:linear-gradient(160deg,#4a229a,#33177a);box-shadow:0 12px 26px rgba(0,0,0,.4),0 0 18px color-mix(in srgb,var(--c) 55%,transparent),inset 0 0 0 2px rgba(255,255,255,.35)}
-/* aktywny gracz: przesuwająca się dioda LED tylko na ramce */
-@property --a{syntax:"<angle>";initial-value:0deg;inherits:false}
-.on .frame{border-color:transparent;background-clip:padding-box}
-.on .frame::before,.on .frame::after{content:"";position:absolute;inset:-3px;border-radius:24px;pointer-events:none;
-background:conic-gradient(from var(--a),#00e5ff,#3d7bff,#b84dff,#ff4fa3,#ffd900,#35f0a0,#00e5ff);animation:led 2.4s linear var(--lo,0s) infinite}
-.on .frame::before{z-index:-1}
-.on .frame::after{z-index:-2;inset:-2px;filter:blur(12px);opacity:.85}
-@keyframes led{to{--a:360deg}}
+
 .off .frame{opacity:.5}
+/* aktywny gracz (zadaje pytanie): lekko powiększony, biała dodatkowa ramka + ukośna wstęga w lewym górnym rogu */
+.card{position:relative;transition:filter .35s}
+.card.on{--s:1.05;scale:var(--s);z-index:4}
+.card.on .frame{box-shadow:0 0 0 5px #fff,0 0 0 8px rgba(255,255,255,.28),0 0 34px rgba(255,255,255,.55),0 18px 36px rgba(0,0,0,.5)}
+.grid:has(.card.on) .card:not(.on){filter:saturate(.7) brightness(.85)}
+.rib{--rs:40cqw;position:absolute;left:0;top:0;width:var(--rs);height:var(--rs);overflow:hidden;border-radius:21px 0 0 0;pointer-events:none;z-index:6}
+.rib span{position:absolute;left:calc(var(--rs)*-.55);top:calc(var(--rs)*.3 - 1.05em);width:calc(var(--rs)*1.7);padding:.45em 0;text-align:center;white-space:nowrap;
+font-size:3.3cqw;font-weight:900;line-height:1.2;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);
+background:linear-gradient(#fff,#eaf3ff);transform:rotate(-45deg);box-shadow:0 2px 6px rgba(20,6,60,.45)}
+#app .card.on.grow{animation:float var(--fd,5s) ease-in-out var(--fo,0s) infinite,grow .7s cubic-bezier(.34,1.56,.64,1)}
+@keyframes grow{from{scale:1}to{scale:var(--s)}}
+@media(max-width:640px){.card.on{--s:1.03}.rib{--rs:50cqw}.rib span{font-size:4.2cqw}}
+@media (prefers-reduced-motion:reduce){#app .card.on.grow{animation:none!important}}
 .slot,.slot video,.av{position:absolute;inset:0;width:100%;height:100%;border-radius:21px;overflow:hidden}
 .slot video{object-fit:cover}
 .av{display:grid;place-items:center;font-size:clamp(2rem,6vw,4rem);font-weight:800;color:#6fb2ff}
@@ -96,6 +103,15 @@ box-shadow:0 6px 16px rgba(20,6,60,.45),0 0 14px rgba(255,255,255,.35),inset 0 -
 .gwrap #gi{width:100%;max-width:none;min-height:54px;padding-left:46px;font-size:1.05rem;border:2px solid #fff;box-shadow:0 0 0 3px rgba(255,255,255,.18)}
 @media(max-width:640px){.ptools{justify-content:center}}
 @media(max-width:560px){.tb .t{display:none}.tb{padding:0 14px;min-height:48px}}
+/* Przyciski kamery i mikrofonu: liquid glass w kolorze tła strony */
+.tb[data-a=mic],.tb[data-a=cv]{position:relative;isolation:isolate;overflow:hidden;color:#fff;text-shadow:0 1px 2px rgba(20,6,60,.35);
+border:1.5px solid rgba(154,99,255,.8);background:linear-gradient(135deg,rgba(154,99,255,.42),rgba(91,43,184,.2));
+-webkit-backdrop-filter:blur(14px) saturate(180%);backdrop-filter:blur(14px) saturate(180%);
+box-shadow:inset 0 1.5px 1px rgba(255,255,255,.6),inset 0 -2px 3px rgba(42,16,104,.5),inset 0 0 16px rgba(214,184,255,.2),0 8px 18px rgba(20,6,60,.35)}
+.tb[data-a=mic]:before,.tb[data-a=cv]:before{content:"";position:absolute;z-index:-1;left:1px;right:1px;top:1px;height:52%;border-radius:13px 13px 60% 60%/13px 13px 14px 14px;background:linear-gradient(rgba(255,255,255,.4),rgba(255,255,255,0));pointer-events:none}
+.tb[data-a=mic]:hover,.tb[data-a=cv]:hover{background:linear-gradient(135deg,rgba(176,128,255,.55),rgba(107,60,205,.32));border-color:rgba(190,150,255,.95)}
+.tb[data-a=mic].on svg,.tb[data-a=cv].on svg{color:#8dffc6;filter:drop-shadow(0 0 5px rgba(47,224,138,.75))}
+.tb[data-a=mic].off svg,.tb[data-a=cv].off svg{color:#ffa3a7;filter:drop-shadow(0 0 5px rgba(255,90,95,.75))}
 .grp{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center}
 .wait{display:inline-flex;align-items:center;gap:10px;font-weight:800;font-size:1.1rem;padding:11px 22px;border-radius:99px;background:rgba(255,255,255,.14);border:1.5px dashed rgba(255,255,255,.55);animation:breathe 2s infinite ease-in-out}
 @keyframes breathe{50%{opacity:.6}}
@@ -250,12 +266,36 @@ background:#fffbe6 repeating-linear-gradient(transparent 0 27px,#d6dcf0 27px 28p
  #notes{display:none}
  body.notes-open #notes{display:flex;left:8px;right:8px;top:8px;bottom:8px;z-index:25}
  .nclose{display:grid}.tb.nbtn{display:inline-flex}}
-@media(max-width:640px){.card{width:44%}.top{grid-template-columns:1fr 1fr}.top .logo{grid-column:1/-1;grid-row:1;height:58px}.top .pill{padding:6px 12px;font-size:.85rem}.top .pill .btn{padding:2px 8px!important;font-size:.8rem}.panel{justify-content:center}}
+@media(max-width:640px){.grid{--gx:16px;gap:34px var(--gx)}.card{width:calc((100% - var(--gx))/2)}.top{grid-template-columns:1fr 1fr}.top .logo{grid-column:1/-1;grid-row:1;height:58px}.top .pill{padding:6px 12px;font-size:.85rem}.top .pill .btn{padding:2px 8px!important;font-size:.8rem}.panel{justify-content:center}}
 .ov{position:fixed;inset:0;background:#1e0a52ee;z-index:10;display:grid;place-items:center;padding:16px;overflow:auto}
 .ov[hidden]{display:none}
 .res{background:#5b2fb8;border:3px solid #9b6cff;border-radius:26px;padding:22px;width:min(480px,100%);text-align:center;display:flex;flex-direction:column;gap:10px}
 .res h2{margin:0;font-size:1.8rem;color:#ffd900;animation:pop .6s}.res table{width:100%;border-collapse:collapse}.res td{padding:6px;border-bottom:1px solid #ffffff33}
-.made{margin:6px 0 0;text-align:center}.made a{display:inline-flex;align-items:center;gap:8px;color:#fff;text-decoration:none;font-weight:800;font-size:.9rem;background:rgba(255,255,255,.12);border:1px solid var(--line);border-radius:99px;padding:8px 18px;transition:background .15s}.made a:hover{background:rgba(255,255,255,.24)}.made .ic{color:#ff7b9c;width:1.05em;height:1.05em}
+.made{margin:6px 0 0;text-align:center}.made a{position:relative;overflow:hidden;isolation:isolate;display:inline-flex;align-items:center;gap:8px;color:#fff;text-decoration:none;font-weight:800;font-size:.95rem;letter-spacing:.02em;
+background:linear-gradient(180deg,#26262b,#000 55%,#0a0a0c);border:2px solid #cfd6e0;border-radius:99px;padding:9px 22px;
+box-shadow:0 4px 0 #000,0 10px 20px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.12);transition:transform .15s,box-shadow .15s,filter .15s}
+.made a::before{content:"";position:absolute;inset:0 0 50% 0;z-index:-1;background:linear-gradient(rgba(255,255,255,.16),rgba(255,255,255,0))}
+.made a::after{content:"";position:absolute;top:-25%;left:-60%;width:38%;height:150%;pointer-events:none;transform:skewX(-20deg);background:linear-gradient(100deg,transparent,rgba(255,255,255,.65),transparent)}
+.made a:hover,.made a:focus-visible{transform:translateY(-2px);filter:brightness(1.08);box-shadow:0 6px 0 #000,0 14px 24px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.2)}
+.made a:hover::after,.made a:focus-visible::after{animation:madeshine .85s ease}
+.made a:active{transform:translateY(2px);box-shadow:0 2px 0 #000,0 6px 12px rgba(0,0,0,.5)}
+@keyframes madeshine{to{left:130%}}
+@media (prefers-reduced-motion:reduce){.made a:hover::after,.made a:focus-visible::after{animation:none}}
+.made .mk i{display:inline-block;font-style:normal;background:linear-gradient(180deg,#fff 0%,#dfe4ec 38%,#8b93a1 50%,#eef1f6 62%,#aab2c0 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;filter:drop-shadow(0 1px 0 rgba(255,255,255,.2));animation:mkdn 1.7s ease-in-out infinite}
+.made .mk i:nth-child(2){animation-name:mkup}
+@keyframes mkdn{0%{transform:translateY(0)}18%{transform:translateY(3px)}36%,100%{transform:translateY(0)}}
+@keyframes mkup{0%{transform:translateY(0)}18%{transform:translateY(-3px)}36%,100%{transform:translateY(0)}}
+@media (prefers-reduced-motion:reduce){.made .mk i{animation:none}}
+.made .mt{background:linear-gradient(180deg,#fff 0%,#dfe4ec 38%,#8b93a1 50%,#eef1f6 62%,#aab2c0 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;filter:drop-shadow(0 1px 0 rgba(255,255,255,.2))}
+.made .ic{color:#d6dce6;width:1.1em;height:1.1em}
+/* Made by MKT: liquid glass w kolorze tła strony */
+.made a{border:1.5px solid rgba(154,99,255,.8);background:linear-gradient(135deg,rgba(154,99,255,.42),rgba(91,43,184,.2));
+-webkit-backdrop-filter:blur(14px) saturate(180%);backdrop-filter:blur(14px) saturate(180%);
+box-shadow:inset 0 1.5px 1px rgba(255,255,255,.6),inset 0 -2px 3px rgba(42,16,104,.5),inset 0 0 16px rgba(214,184,255,.2),0 8px 18px rgba(20,6,60,.35)}
+.made a::before{inset:1px 1px auto 1px;height:52%;border-radius:99px 99px 60% 60%/20px 20px 14px 14px;background:linear-gradient(rgba(255,255,255,.4),rgba(255,255,255,0))}
+.made a:hover,.made a:focus-visible{background:linear-gradient(135deg,rgba(176,128,255,.55),rgba(107,60,205,.32));border-color:rgba(190,150,255,.95);filter:none;box-shadow:inset 0 1.5px 1px rgba(255,255,255,.7),inset 0 -2px 3px rgba(42,16,104,.5),inset 0 0 18px rgba(214,184,255,.28),0 12px 24px rgba(20,6,60,.45)}
+.made a:active{box-shadow:inset 0 2px 5px rgba(42,16,104,.55),0 3px 8px rgba(20,6,60,.35)}
+.made .ic{color:#e9dcff}
 /* ---- okno „Jak grać" ---- */
 #how{z-index:40;background:rgba(30,10,82,.9);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .modal{position:relative;width:min(640px,100%);max-height:calc(100dvh - 32px);overflow:auto;background:linear-gradient(165deg,#7a45e6,#4a2399);border:2px solid rgba(255,255,255,.45);border-radius:28px;padding:28px 26px 24px;box-shadow:0 30px 80px rgba(20,6,60,.6);display:flex;flex-direction:column;gap:16px;animation:pop .3s both}
@@ -271,9 +311,31 @@ background:#fffbe6 repeating-linear-gradient(transparent 0 27px,#d6dcf0 27px 28p
 .mbox h3{display:flex;align-items:center;gap:8px;margin:0 0 6px;font-size:1rem;color:#ffd900}.mbox ul{margin:0;padding-left:20px}.mbox li+li{margin-top:3px}
 #app.still .cfg,#app.still .plist,#app.still .pl{animation:none}
 #app.still .card{animation:float var(--fd,5s) ease-in-out var(--fo,0s) infinite}
-#toast,#net{position:fixed;left:50%;transform:translateX(-50%);background:#ff5a5f;padding:10px 20px;border-radius:14px;font-weight:700;z-index:50}#toast{top:14px;left:auto;right:14px;transform:none;max-width:min(360px,calc(100vw - 28px));box-shadow:0 10px 28px rgba(20,6,60,.4);animation:toastin .3s cubic-bezier(.3,1.4,.5,1)}
-@keyframes toastin{from{opacity:0;transform:translateX(30px)}}#net{top:10px;background:#ffb000;color:#321}
-#toast:empty{display:none}#toast.ok{background:#2fe08a;color:#03341c}
+#net{position:fixed;left:50%;transform:translateX(-50%);background:#ffb000;color:#321;padding:10px 20px;border-radius:14px;font-weight:700;z-index:50;top:10px}
+/* Powiadomienie (toast) */
+#toast{position:fixed;top:max(14px,env(safe-area-inset-top));right:14px;z-index:50;max-width:min(360px,calc(100vw - 28px));--c1:#ff7a7f;--c2:#e11d48;--tx:#fda4af;--glow:rgba(255,90,95,.28);pointer-events:none}
+#toast.ok{--c1:#34d399;--c2:#059669;--tx:#6ee7b7;--glow:rgba(16,185,129,.28)}
+#toast:empty{display:none}
+#toast .tw{position:relative;animation:toastin .3s cubic-bezier(.3,1.4,.5,1)}
+#toast .bd{position:absolute;right:-8px;top:-8px;z-index:2;width:20px;height:20px;display:grid;place-items:center}
+#toast .bd i{position:absolute;inset:0;border-radius:50%;background:var(--c1);opacity:.75;animation:toastping 1s cubic-bezier(0,0,.2,1) infinite}
+#toast .bd b{position:relative;width:16px;height:16px;border-radius:50%;background:var(--c2);color:#fff;font:700 10px/16px Inter,system-ui,sans-serif;text-align:center}
+#toast .tt{position:relative;overflow:hidden;border-radius:12px;padding:1px;background:linear-gradient(to bottom left,#111827,#030712,#000);box-shadow:0 14px 34px rgba(0,0,0,.45),0 0 26px var(--glow)}
+#toast .ti{position:relative;display:flex;align-items:center;gap:14px;border-radius:12px;background:#030712;padding:10px 16px}
+#toast .ic{position:relative;isolation:isolate;flex:none;width:40px;height:40px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(135deg,var(--c1),var(--c2))}
+#toast .ic:after{content:"";position:absolute;inset:0;z-index:-1;border-radius:8px;background:var(--c1);opacity:.5;filter:blur(5px)}
+#toast .ic svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#toast .tx{display:flex;flex-direction:column;align-items:flex-start;min-width:0;text-align:left}
+#toast .tx strong{font-size:14px;font-weight:600;color:#fff;line-height:1.3;overflow-wrap:anywhere}
+#toast .tx small{font-size:10px;font-weight:500;color:var(--tx);opacity:.85}
+#toast .dots{margin-left:auto;display:flex;align-items:center;gap:4px;padding-left:4px}
+#toast .dots span{width:6px;height:6px;border-radius:50%;background:var(--c1);animation:toastdot 1.4s ease-in-out infinite}
+#toast .dots span:nth-child(2){opacity:.5;animation-delay:.15s}#toast .dots span:nth-child(3){opacity:.3;animation-delay:.3s}
+#toast .gl{position:absolute;inset:0;border-radius:12px;background:linear-gradient(135deg,var(--c1),var(--c2));opacity:.18;pointer-events:none}
+@keyframes toastin{from{opacity:0;transform:translateX(30px)}}
+@keyframes toastping{75%,100%{transform:scale(2);opacity:0}}
+@keyframes toastdot{50%{transform:scale(1.5)}}
+@media(prefers-reduced-motion:reduce){#toast .bd i,#toast .dots span,#toast .tw{animation:none}}
 @media(prefers-reduced-motion:reduce){*,*:before{animation:none!important;transition:none!important}}
 .ic{width:1.25em;height:1.25em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .nm .lbl .ic{width:1em;height:1em;vertical-align:-.15em;margin-right:4px;stroke-width:3}
@@ -285,7 +347,7 @@ background:#fffbe6 repeating-linear-gradient(transparent 0 27px,#d6dcf0 27px 28p
 .rk{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;font-weight:900;background:rgba(255,255,255,.18)}
 .rk.r1{background:linear-gradient(#ffe84a,#ffc400);color:#3a2a00}.rk.r2{background:linear-gradient(#fff,#c9d4e8);color:#1a2a55}.rk.r3{background:linear-gradient(#f3b98a,#c27a3c);color:#3a1d00}
 </style></head><body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c4.5 0 8.3 2.9 9.94 6.99a1 1 0 0 1 0 .7 10.8 10.8 0 0 1-1.67 2.68"/><path d="M6.61 6.61A10.75 10.75 0 0 0 2.06 11.65a1 1 0 0 0 0 .7C3.7 16.42 7.5 19 12 19a10.7 10.7 0 0 0 5.39-1.61"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="m2 2 20 20"/></symbol><symbol id="i-note" viewBox="0 0 24 24"><path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z"/><path d="M15 3v6h6"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol><symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol><symbol id="i-check-circle" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></symbol><symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol><symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></symbol><symbol id="i-bulb" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></symbol><symbol id="i-sliders" viewBox="0 0 24 24"><path d="M21 4h-7"/><path d="M10 4H3"/><path d="M21 12h-9"/><path d="M8 12H3"/><path d="M21 20h-5"/><path d="M12 20H3"/><path d="M14 2v4"/><path d="M8 10v4"/><path d="M16 18v4"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol><symbol id="i-repeat" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></symbol><symbol id="i-message" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></symbol><symbol id="i-layers" viewBox="0 0 24 24"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></symbol><symbol id="i-hourglass" viewBox="0 0 24 24"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></symbol><symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol><symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></symbol><symbol id="i-video" viewBox="0 0 24 24"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></symbol><symbol id="i-video-off" viewBox="0 0 24 24"><path d="M10.66 6H14a2 2 0 0 1 2 2v2.5l5.248-3.062A.5.5 0 0 1 22 7.87v8.196"/><path d="M16 16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2"/><path d="m2 2 20 20"/></symbol><symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></symbol><symbol id="i-mic-off" viewBox="0 0 24 24"><path d="M12 19v3"/><path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12"/><path d="M19 10v2a7 7 0 0 1-.11 1.23"/><path d="M5 10v2a7 7 0 0 0 12 5"/><path d="m2 2 20 20"/></symbol><symbol id="i-log-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol><symbol id="i-log-in" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/></symbol><symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol><symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol><symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol><symbol id="i-trophy" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-1.21 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98 1.21 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></symbol><symbol id="i-dice" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 8h.01M16 8h.01M8 16h.01M16 16h.01M12 12h.01" stroke-width="3"/></symbol><symbol id="i-paw" viewBox="0 0 24 24"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></symbol><symbol id="i-utensils" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></symbol><symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></symbol><symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></symbol><symbol id="i-film" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></symbol><symbol id="i-gamepad" viewBox="0 0 24 24"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></symbol><symbol id="i-medal" viewBox="0 0 24 24"><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"/><path d="M11 12 5.12 2.2"/><path d="m13 12 5.88-9.8"/><path d="M8 7h8"/><circle cx="12" cy="17" r="5"/><path d="M12 18v-2h-.5"/></symbol><symbol id="i-star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol><symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol><symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol><symbol id="i-flame" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></symbol><symbol id="i-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol><symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol><symbol id="i-rotate" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol><symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol><symbol id="i-heart" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></symbol></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c4.5 0 8.3 2.9 9.94 6.99a1 1 0 0 1 0 .7 10.8 10.8 0 0 1-1.67 2.68"/><path d="M6.61 6.61A10.75 10.75 0 0 0 2.06 11.65a1 1 0 0 0 0 .7C3.7 16.42 7.5 19 12 19a10.7 10.7 0 0 0 5.39-1.61"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="m2 2 20 20"/></symbol><symbol id="i-note" viewBox="0 0 24 24"><path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z"/><path d="M15 3v6h6"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol><symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol><symbol id="i-check-circle" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></symbol><symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol><symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></symbol><symbol id="i-bulb" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></symbol><symbol id="i-sliders" viewBox="0 0 24 24"><path d="M21 4h-7"/><path d="M10 4H3"/><path d="M21 12h-9"/><path d="M8 12H3"/><path d="M21 20h-5"/><path d="M12 20H3"/><path d="M14 2v4"/><path d="M8 10v4"/><path d="M16 18v4"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol><symbol id="i-repeat" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></symbol><symbol id="i-message" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></symbol><symbol id="i-layers" viewBox="0 0 24 24"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></symbol><symbol id="i-hourglass" viewBox="0 0 24 24"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></symbol><symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol><symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></symbol><symbol id="i-video" viewBox="0 0 24 24"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></symbol><symbol id="i-video-off" viewBox="0 0 24 24"><path d="M10.66 6H14a2 2 0 0 1 2 2v2.5l5.248-3.062A.5.5 0 0 1 22 7.87v8.196"/><path d="M16 16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2"/><path d="m2 2 20 20"/></symbol><symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></symbol><symbol id="i-mic-off" viewBox="0 0 24 24"><path d="M12 19v3"/><path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12"/><path d="M19 10v2a7 7 0 0 1-.11 1.23"/><path d="M5 10v2a7 7 0 0 0 12 5"/><path d="m2 2 20 20"/></symbol><symbol id="i-log-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol><symbol id="i-log-in" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/></symbol><symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol><symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol><symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol><symbol id="i-trophy" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-1.21 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98 1.21 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></symbol><symbol id="i-dice" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 8h.01M16 8h.01M8 16h.01M16 16h.01M12 12h.01" stroke-width="3"/></symbol><symbol id="i-paw" viewBox="0 0 24 24"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></symbol><symbol id="i-utensils" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></symbol><symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></symbol><symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></symbol><symbol id="i-film" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></symbol><symbol id="i-gamepad" viewBox="0 0 24 24"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></symbol><symbol id="i-medal" viewBox="0 0 24 24"><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"/><path d="M11 12 5.12 2.2"/><path d="m13 12 5.88-9.8"/><path d="M8 7h8"/><circle cx="12" cy="17" r="5"/><path d="M12 18v-2h-.5"/></symbol><symbol id="i-star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol><symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol><symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol><symbol id="i-flame" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></symbol><symbol id="i-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol><symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol><symbol id="i-rotate" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol><symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol><symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></symbol><symbol id="i-heart" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></symbol></svg>
 <div id="app"></div>
 <aside id="notes" hidden aria-label="Prywatny notatnik">
  <div class="ch"><b><svg class="ic" aria-hidden="true"><use href="#i-note"/></svg>Notatnik</b><div class="nh"><span><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg>tylko Ty</span><button class="nclose" data-n-close aria-label="Zamknij notatnik"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div></div>
@@ -328,12 +390,16 @@ const CI={all:'dice',zwierzeta:'paw',jedzenie:'utensils',przedmioty:'box',miejsc
 const ic=(n,c='')=>`<svg class="ic ${c}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 const ERR={ROOM_FULL:'Pokój jest pełny',NO_ROOM:'Pokój nie istnieje',GAME_STARTED:'Gra już trwa. Wróć tym samym nickiem, którego używałeś(aś) wcześniej',INVALID_NICK:'Podaj nick (1–20 znaków)',NOT_ENOUGH_PLAYERS:'Potrzeba co najmniej 2 graczy',EMPTY_POOL:'Brak haseł w kategorii',NOT_ENOUGH_WORDS:'Za mało haseł dla tylu graczy',NOT_HOST:'Tylko gospodarz może to zrobić',TIME_UP:'Czas na turę minął',STALE_TURN:'Ta tura już się skończyła',NOT_ACTIVE_PLAYER:'To nie jest Twoja tura',NO_ACTIVE_ROUND:'Runda nie trwa',PLAYER_ONLINE:'Gracz o tym nicku jest już w grze'};
 const STAR='<path id="st" d="M0-18 5-6 18-5 8 4 11 17 0 10-11 17-8 4-18-5-5-6z"/>';
-/* logo: symetryczne gwiazdki, wszystko mieści się w viewBox i jest wycentrowane */
-const LOGO=`<svg class="logo" viewBox="0 0 520 200" role="img" aria-label="Kim Jestem"><defs>${STAR}<linearGradient id="lgP" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b2dff"/><stop offset=".55" stop-color="#5b4bff"/><stop offset="1" stop-color="#1fa2ff"/></linearGradient><linearGradient id="lgK" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2ff3c8"/><stop offset="1" stop-color="#19c2ff"/></linearGradient><linearGradient id="lgS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><g transform="rotate(-2 260 110)"><rect x="22" y="48" width="476" height="136" rx="46" fill="#1a1a40" transform="translate(0 9)"/><rect x="22" y="48" width="476" height="136" rx="46" fill="url(#lgP)" stroke="#fff" stroke-width="7"/><rect x="40" y="58" width="440" height="52" rx="26" fill="url(#lgS)"/><g font-family="Impact,'Arial Black',sans-serif" font-weight="900" text-anchor="middle" stroke-linejoin="round" style="paint-order:stroke"><text x="265" y="159" font-size="88" textLength="360" lengthAdjust="spacingAndGlyphs" fill="#1a1a40" stroke="#1a1a40" stroke-width="12">JESTEM</text><text x="260" y="152" font-size="88" textLength="360" lengthAdjust="spacingAndGlyphs" fill="#fff" stroke="#1a1a40" stroke-width="9">JESTEM</text></g></g><g transform="rotate(-7 110 38)"><rect x="40" y="12" width="148" height="56" rx="28" fill="#1a1a40" transform="translate(0 5)"/><rect x="40" y="12" width="148" height="56" rx="28" fill="url(#lgK)" stroke="#fff" stroke-width="5"/><text x="114" y="55" font-family="Impact,'Arial Black',sans-serif" font-weight="900" font-size="42" text-anchor="middle" fill="#1a1a40" textLength="96" lengthAdjust="spacingAndGlyphs">KIM</text></g><g fill="#fff" stroke="#1a1a40" stroke-width="3" stroke-linejoin="round"><use href="#st" transform="translate(470 40) scale(1.1)"/><use href="#st" transform="translate(500 82) scale(.65)"/></g></svg>`;
+const LOGO='<img class="logo" src="/logo.png" alt="Kim Jestem" decoding="async" draggable="false">';
 const CROWN='<svg class="crown" viewBox="0 0 40 30"><path d="M3 26 0 6l10 8 10-12 10 12 10-8-3 20z" fill="#ffd900" stroke="#1a1a40" stroke-width="2.5" stroke-linejoin="round"/></svg>';
 let CFG,sock,S={spin:{},v:null,id:null,off:0,stream:null,calls:{},streams:{},vids:{},joined:false,hide:false,nk:null,sc:null,showCode:false};
 const emit=(ev,p)=>new Promise(r=>sock.emit(ev,p,r));
-const toast=(m,ok)=>{const t=$('#toast');t.textContent=m;t.className=ok?'ok':'';clearTimeout(toast.t);toast.t=setTimeout(()=>t.textContent='',3000)};
+const TOAST_ICO={ok:'<path d="M5 13l4 4L19 7"/>',err:'<path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>'};
+const toast=(m,ok)=>{const t=$('#toast');t.className=ok?'ok':'';
+  t.innerHTML='<div class="tw"><div class="bd"><i></i><b>'+(ok?'✓':'!')+'</b></div><div class="tt"><div class="ti"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true">'+(ok?TOAST_ICO.ok:TOAST_ICO.err)+'</svg></div><div class="tx"><strong></strong><small>'+(ok?'Gotowe':'Uwaga')+'</small></div><div class="dots" aria-hidden="true"><span></span><span></span><span></span></div></div><div class="gl"></div></div></div>';
+  t.querySelector('strong').textContent=m;
+  t.setAttribute('role',ok?'status':'alert');
+  clearTimeout(toast.t);toast.t=setTimeout(()=>t.textContent='',3000)};
 const fail=r=>{if(!r.ok)toast(ERR[r.error]||'Błąd: '+r.error);return r.ok};
 
 /* ---------- Kamery: PeerJS (WebRTC; sygnalizację robi chmura PeerJS, a nie Socket.IO) ----------
@@ -463,12 +529,11 @@ function home(msg=''){
   const m=location.pathname.match(/\/room\/([A-Za-z0-9]{6})/);
   app.innerHTML=`<div class="home">${LOGO}<p class="sub"></p><div class="box">
   <input id="nick" maxlength="20" placeholder="Twój nick" value="${esc(localStorage.nick||'')}">
-  <button class="btn ghost" data-a="hcam">${S.stream?ic('video')+'Kamera włączona (kliknij, aby wyłączyć)':ic('video-off')+'Włącz kamerę i mikrofon (opcjonalnie)'}</button>
   ${getSaved()?`<button class="btn y" data-a="back">${ic('log-in')}WRÓĆ DO GRY</button>`:''}
   <button class="btn ${getSaved()?'':'y'}" data-a="mk">${ic('plus')}STWÓRZ POKÓJ</button>
   <div class="row"><input id="code" maxlength="6" placeholder="KOD" value="${m?m[1].toUpperCase():''}"><button class="btn" data-a="jn">${ic('log-in')}DOŁĄCZ DO POKOJU</button></div>
   <button class="btn ghost" data-a="how">${ic('help')}JAK GRAĆ?</button><div class="msg">${esc(msg)}</div></div>
-  <div class="made"><a href="https://mktlab.pl/strony-www" target="_blank" rel="noopener">${ic('heart')}Made by MKT</a></div></div>`;
+  <div class="made"><a href="https://mktlab.pl/strony-www" target="_blank" rel="noopener"><span class="mtw"><span class="mt">Made by</span> <span class="mk" aria-label="MKT"><i>M</i><i>K</i><i>T</i></span></span>${ic('arrow-up-right')}</a></div></div>`;
 }
 /* Zapamiętana sesja (localStorage): pozwala wrócić do gry po zamknięciu karty. Kod pokoju nie jest tu przechowywany. */
 const SAVED='czolko.session';
@@ -557,12 +622,14 @@ function tickSpins(){
 setInterval(tickSpins,60);
 /* Dźwięk trafienia (WebAudio, 30% głośności). Kontekst odblokowuje pierwsze kliknięcie/klawisz w stronie. */
 let AC=null,DBUF=null,DLOAD=null;
-const DING=new Audio('/nba02.mp3');DING.volume=.3;DING.preload='auto'; // plan B, gdyby WebAudio nie działało
+const DING_URL='/nba02.mp3?v=2'; // po podmianie pliku zwiększ v (2→3…), żeby przeglądarki pobrały nowy dźwięk
+const DING_VOL=.3; // głośność dźwięku trafienia: 0 = cisza, 1 = maksimum
+const DING=new Audio(DING_URL);DING.volume=DING_VOL;DING.preload='auto'; // plan B, gdyby WebAudio nie działało
 function unlockAudio(){
   try{
     AC=AC||new (window.AudioContext||window.webkitAudioContext)();
     if(AC.state!=='running')AC.resume().catch(()=>{});
-    if(!DBUF&&!DLOAD)DLOAD=fetch('/nba02.mp3').then(r=>r.arrayBuffer()).then(b=>AC.decodeAudioData(b)).then(b=>{DBUF=b}).catch(()=>{DLOAD=null});
+    if(!DBUF&&!DLOAD)DLOAD=fetch(DING_URL).then(r=>r.arrayBuffer()).then(b=>AC.decodeAudioData(b)).then(b=>{DBUF=b}).catch(()=>{DLOAD=null});
   }catch(e){}
 }
 ['pointerdown','keydown','touchstart'].forEach(ev=>addEventListener(ev,unlockAudio,{passive:true}));
@@ -570,7 +637,7 @@ function playDing(){
   try{
     if(AC&&DBUF){
       if(AC.state!=='running')AC.resume().catch(()=>{});
-      const src=AC.createBufferSource(),g=AC.createGain();g.gain.value=.3;src.buffer=DBUF;src.connect(g);g.connect(AC.destination);src.start();return;
+      const src=AC.createBufferSource(),g=AC.createGain();g.gain.value=DING_VOL;src.buffer=DBUF;src.connect(g);g.connect(AC.destination);src.start();return;
     }
   }catch(e){}
   try{DING.currentTime=0;DING.play().catch(()=>{})}catch(e){}
@@ -601,7 +668,7 @@ function render(){
     }
     if(R&&b&&!b.solved&&(up[p.id]||newRound)&&!REDUCED)S.spin[p.id]=Date.now();
     const g=RV&&gain(p.id)?`<span class="gain">+${gain(p.id)}</span>`:'';
-    return `<div class="card${v.activeId===p.id&&R?' on':''}${p.connected?'':' off'}" style="--c:${COL[i%6]}"><div class="frame"><div class="av">${esc([...p.nick][0].toUpperCase())}</div><div class="slot" data-slot="${p.id}"></div>${max>0&&p.score===max?CROWN:''}<div class="pts${up[p.id]?' up':''}" title="Punkty"><b>${p.score}</b></div>${host&&L&&p.id!==S.id?`<button class="kick" data-a="kick" data-id="${p.id}" title="Usuń gracza" aria-label="Usuń gracza">${ic('x')}</button>`:''}</div><div class="nm ${cls}" data-nm="${p.id}">${lbl?`<span class="lbl">${lbl}</span>`:''}<span class="wd" data-final="${wd}">${wd}${g}</span></div></div>`}).join('');
+    return `<div class="card${v.activeId===p.id&&R?' on':''}${p.connected?'':' off'}" style="--c:${COL[i%6]}"><div class="frame">${v.activeId===p.id&&R?'<div class="rib"><span>Zadaje pytanie</span></div>':''}<div class="av">${esc([...p.nick][0].toUpperCase())}</div><div class="slot" data-slot="${p.id}"></div>${max>0&&p.score===max?CROWN:''}<div class="pts${up[p.id]?' up':''}" title="Punkty"><b>${p.score}</b></div>${host&&L&&p.id!==S.id?`<button class="kick" data-a="kick" data-id="${p.id}" title="Usuń gracza" aria-label="Usuń gracza">${ic('x')}</button>`:''}</div><div class="nm ${cls}" data-nm="${p.id}">${lbl?`<span class="lbl">${lbl}</span>`:''}<span class="wd" data-final="${wd}">${wd}${g}</span></div></div>`}).join('');
   let main='';
   if(L)main=host?`<button class="btn y" data-a="start" ${v.players.length>1?'':'disabled'}>${ic('play')}NOWA GRA</button>`:`<div class="wait">${ic('hourglass')}Czekaj, aż gospodarz rozpocznie grę</div>`;
   else if(R&&act)main=`<label class="gwrap">${ic('pencil')}<input id="gi" maxlength="60" placeholder="Wpisz swoje hasło…" autocomplete="off"></label><button class="btn g" data-a="guess">${ic('target')}ZGADUJĘ!</button><button class="btn y sm" data-a="pass">ZADAŁEM PYTANIE${ic('arrow-right')}</button>`;
@@ -623,6 +690,7 @@ function render(){
   const T=performance.now()/1000;
   app.querySelectorAll('.card').forEach((c,i)=>{const d=[5,5.8,4.6][i%3];c.style.setProperty('--fd',d+'s');c.style.setProperty('--fo','-'+((T+i*1.3)%d).toFixed(3)+'s');c.style.setProperty('--lo','-'+(T%2.4).toFixed(3)+'s')});
   const lg=app.querySelector('.top .logo');if(lg)lg.style.setProperty('--lo2','-'+(T%4.4).toFixed(3)+'s');
+  {const ac=R?v.activeId:null;if(ac&&ac!==S.lastAct&&!REDUCED)app.querySelector('.card.on')?.classList.add('grow');S.lastAct=ac}
   attachVideos();
   tickSpins();
 }
@@ -659,7 +727,7 @@ const A={
   },
   start:()=>emit('start').then(fail),
   async guess(){const i=$('#gi'),t=i?.value.trim();if(!t){toast('Wpisz swoje hasło');i?.focus();return}
-    const r=await emit('guess',{turnId:S.v.turnId,text:t});if(fail(r))r.correct?toast('+1 pkt! Nowe hasło na czole',1):toast('Pudło! Tura przechodzi dalej')},
+    const r=await emit('guess',{turnId:S.v.turnId,text:t});if(fail(r))r.correct?toast('+1 pkt! Tura przechodzi dalej',1):toast('Pudło! Tura przechodzi dalej')},
   pass:()=>emit('pass',{turnId:S.v.turnId}).then(fail),
   next:()=>emit('next').then(fail),
   again:()=>emit('again').then(fail),

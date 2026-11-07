@@ -211,8 +211,9 @@ export interface GuessResult {
 }
 
 /**
- * Aktywny gracz zgaduje swoje hasło. Trafienie: punkty (im szybciej, tym więcej).
- * Pudło kosztuje turę. W obu przypadkach tura przechodzi dalej.
+ * Aktywny gracz zgaduje swoje hasło. Trafienie: +1 punkt i nowe hasło na czole.
+ * Niezależnie od wyniku (trafienie czy pudło) jego tura kończy się od razu
+ * i przechodzi do następnego gracza. Każde zgadnięcie liczy się do limitu tur.
  */
 export function guess(room: Room, playerId: string, turnId: number, text: string, now: number): GuessResult {
   assertTurn(room, playerId, turnId, now);
@@ -229,17 +230,15 @@ export function guess(room: Room, playerId: string, turnId: number, text: string
 
     const next = drawNextWord(room);
     if (next) {
-      // Gracz dostaje kolejne hasło i gra dalej w tej samej turze (deadline bez zmian).
-      // turnId++ unieważnia stare zdarzenia od klienta — ale nie kończy tury.
-      room.secrets[playerId] = { word: next, solved: false, turns: s.turns, gained: 0 };
-      room.turnId += 1;
+      // Nowe hasło na kolejną turę gracza; ta tura właśnie się kończy.
+      room.secrets[playerId] = { word: next, solved: false, turns: s.turns + 1, gained: 0 };
     } else {
       // Pula wyczerpana — gracz kończy rundę bez nowego hasła.
       s.solved = true;
       s.gained = 1;
       s.turns += 1;
-      advance(room, now);
     }
+    advance(room, now);
     return { correct: true, gained: 1, word: guessedWord };
   }
 

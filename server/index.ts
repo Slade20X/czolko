@@ -11,6 +11,8 @@ const PORT = Number(process.env.PORT ?? 3000);
 const HTML = path.resolve(process.cwd(), 'public/index.html');
 const NOT_FOUND = path.resolve(process.cwd(), 'public/404.html');
 const MP3 = path.resolve(process.cwd(), 'public/nba02.mp3');
+const LOGO = path.resolve(process.cwd(), 'public/logo.png');
+const FAVICON = path.resolve(process.cwd(), 'public/favicon.png');
 const rooms = new Map<string, Room>();
 const sessions = new Map<string, { code: string; id: string }>();
 const sockets = new Map<string, Socket>();
@@ -47,6 +49,29 @@ const server = http.createServer((req, res) => {
     }
     res.writeHead(200, { ...base, 'Content-Length': buf.length });
     return void res.end(req.method === 'HEAD' ? undefined : buf);
+  }
+  if (req.url?.split('?')[0] === '/logo.png' && (req.method === 'GET' || req.method === 'HEAD')) {
+    try {
+      const buf = fs.readFileSync(LOGO);
+      res.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': buf.length, 'Cache-Control': 'public, max-age=3600' });
+      return void res.end(req.method === 'HEAD' ? undefined : buf);
+    } catch {
+      console.error(`Brak pliku logo: ${LOGO}`);
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+      return void res.end('logo.png not found');
+    }
+  }
+  const fav = (req.url ?? '').split('?')[0];
+  if ((fav === '/favicon.png' || fav === '/favicon.ico') && (req.method === 'GET' || req.method === 'HEAD')) {
+    try {
+      const buf = fs.readFileSync(FAVICON);
+      res.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': buf.length, 'Cache-Control': 'public, max-age=3600' });
+      return void res.end(req.method === 'HEAD' ? undefined : buf);
+    } catch {
+      console.error(`Brak pliku favicon: ${FAVICON}`);
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+      return void res.end('favicon not found');
+    }
   }
   // Strona główna i linki zaproszeń /room/KOD → gra; cokolwiek innego → własne 404.
   const pathname = (req.url ?? '/').split('?')[0]!.split('#')[0]!;
@@ -210,4 +235,5 @@ setInterval(() => {
   }
 }, 250);
 
+if (!fs.existsSync(LOGO)) console.warn(`UWAGA: nie znaleziono ${LOGO}. Wrzuć logo.png do folderu public/`);
 server.listen(PORT, () => console.log(`Czółko z Ekipą: http://localhost:${PORT}`));
