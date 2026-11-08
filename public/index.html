@@ -537,7 +537,7 @@ setInterval(syncCalls,4000);
 
 async function getMedia(){
   if(!navigator.mediaDevices?.getUserMedia){toast('Ta przeglądarka nie obsługuje kamery (wymagane HTTPS lub localhost)');return false}
-  try{S.stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:360,frameRate:24},audio:true});return true}
+  try{S.stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:384},height:{ideal:216},frameRate:{ideal:15,max:20}},audio:{echoCancellation:true,noiseSuppression:true}});return true}
   catch(e){toast('Brak dostępu do kamery/mikrofonu. Zezwól w ustawieniach przeglądarki.');return false}
 }
 function stopMedia(){S.stream?.getTracks().forEach(t=>t.stop());S.stream=null;Object.keys(S.calls).forEach(dropCall);S.vids={}}
@@ -607,7 +607,7 @@ const SAVED='czolko.session';
 const getSaved=()=>{try{return JSON.parse(localStorage.getItem(SAVED)||'null')}catch{return null}};
 const setSaved=o=>{try{o?localStorage.setItem(SAVED,JSON.stringify(o)):localStorage.removeItem(SAVED)}catch{}};
 function iris(fn){
-  if(REDUCED||!document.startViewTransition){fn();return}
+  if(REDUCED||!document.startViewTransition||(navigator.hardwareConcurrency||8)<4||(navigator.deviceMemory||8)<4){fn();return} // słabe telefony: bez efektu
   let t;try{t=document.startViewTransition(fn)}catch(e){fn();return}
   t.ready.then(()=>{
     const r=Math.hypot(innerWidth,innerHeight)/2*1.08;
