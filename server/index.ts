@@ -163,7 +163,7 @@ on('resume', (p) => {
   on('settings', (p, room) => {
     G.updateSettings(room, me!.id, {
       categories: Array.isArray(p.categories) ? p.categories.map((c: unknown) => str(c, 20)) : undefined,
-      rounds: Number(p.rounds), turnSeconds: Number(p.turnSeconds), maxTurns: Number(p.maxTurns),
+      turnSeconds: Number(p.turnSeconds), maxTurns: Number(p.maxTurns),
     });
     broadcast(room);
   });

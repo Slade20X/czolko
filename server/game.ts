@@ -15,7 +15,7 @@ export const REVEAL_MS = 8000; // jak długo widać hasła po zakończeniu rundy
 const clamp = (n: number, a: number, b: number) => (Number.isFinite(n) ? Math.min(b, Math.max(a, Math.trunc(n))) : a);
 
 export const DEFAULT_SETTINGS: Settings = {
-  maxPlayers: 6, rounds: 3, turnSeconds: 30, maxTurns: 8, categories: ['all'], customWords: [],
+  maxPlayers: 6, turnSeconds: 30, maxTurns: 8, categories: ['all'], customWords: [],
 };
 
 export function normalizeNick(raw: string): string {
@@ -31,8 +31,8 @@ export function normalizeSettings(input: Partial<Settings>): Settings {
   const categories = Array.isArray(s.categories) && s.categories.length ? s.categories : ['all'];
   const turnSeconds = TURN_SECONDS.includes(s.turnSeconds) ? s.turnSeconds : DEFAULT_SETTINGS.turnSeconds;
   const settings: Settings = {
-    maxPlayers: clamp(s.maxPlayers, 2, 6), rounds: clamp(s.rounds, 1, 30), turnSeconds,
-    maxTurns: clamp(s.maxTurns, 1, 30), categories, customWords,
+    maxPlayers: clamp(s.maxPlayers, 2, 6), turnSeconds,
+    maxTurns: Number.isFinite(s.maxTurns) ? clamp(s.maxTurns, 0, 30) : DEFAULT_SETTINGS.maxTurns, categories, customWords,
   };
   buildPool(settings.categories, settings.customWords); // rzuca EMPTY_POOL
   return settings;
@@ -118,7 +118,7 @@ export function updateSettings(room: Room, hostId: string, input: Partial<Settin
 function eligible(room: Room, id: string): boolean {
   const p = room.players.find((x) => x.id === id);
   const s = room.secrets[id];
-  return !!p && p.connected && !!s && !s.solved && s.turns < room.settings.maxTurns;
+  return !!p && p.connected && !!s && !s.solved && (room.settings.maxTurns === 0 || s.turns < room.settings.maxTurns);
 }
 
 /** Indeks następnego uprawnionego gracza, licząc od `from` (cyklicznie), albo -1. */
@@ -271,7 +271,7 @@ export function tick(room: Room, now: number): boolean {
 export function nextRound(room: Room, hostId: string, now: number, rng: Rng = Math.random): void {
   if (room.hostId !== hostId) throw new GameError('NOT_HOST');
   if (room.phase !== 'reveal') throw new GameError('NO_REVEAL');
-  if (room.round >= room.settings.rounds || room.players.length < 2) {
+  if (room.players.length < 2) { // gra trwa bez limitu rund, aż gracze sami wyjdą
     room.phase = 'finished'; room.activeId = null; room.revealDeadline = null; return;
   }
   beginRound(room, now, rng);
@@ -298,7 +298,7 @@ export function viewFor(room: Room, viewerId: string): RoomView {
   return {
     code: room.code, hostId: room.hostId, players: room.players,
     settings: { ...rest, customWordsCount: customWords.length },
-    phase: room.phase, round: room.round, totalRounds: room.settings.rounds,
+    phase: room.phase, round: room.round,
     activeId: room.activeId, turnId: room.turnId, deadline: Number.isFinite(room.deadline) ? room.deadline : null, board,
     lastResult: room.lastResult,
     winners: room.phase === 'finished' ? winners(room) : [],

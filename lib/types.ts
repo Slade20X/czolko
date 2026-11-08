@@ -2,9 +2,8 @@ export type Phase = 'lobby' | 'round' | 'reveal' | 'finished';
 
 export interface Settings {
   maxPlayers: number;
-  rounds: number;
   turnSeconds: number; // czas na jedną turę (pytanie)
-  maxTurns: number; // limit tur (pytań) na gracza w jednej rundzie
+  maxTurns: number; // limit tur (pytań) na gracza w jednej rundzie; 0 = bez limitu
   categories: string[]; // klucze z data/words.ts lub 'all' / 'custom'
   customWords: string[];
 }
@@ -73,7 +72,6 @@ export interface RoomView {
   settings: Omit<Settings, 'customWords'> & { customWordsCount: number };
   phase: Phase;
   round: number;
-  totalRounds: number;
   activeId: string | null;
   turnId: number;
   deadline: number | null;

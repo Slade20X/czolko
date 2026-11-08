@@ -433,7 +433,7 @@ box-shadow:inset 0 1.5px 1px rgba(255,255,255,.6),inset 0 -2px 3px rgba(42,16,10
   <div class="mbox"><h3><svg class="ic" aria-hidden="true"><use href="#i-zap"/></svg>Punktacja</h3><ul>
    <li>Im szybciej zgadniesz, tym więcej punktów: trafienie w pierwszej turze daje tyle punktów, ile wynosi limit pytań.</li>
    <li>Każda kolejna tura (pytanie, pudło lub przegrany czas) odejmuje 1 punkt, ale zawsze dostajesz minimum 1.</li>
-   <li>Wygrywa gracz z największą liczbą punktów po ostatniej rundzie.</li></ul></div>
+   <li>Gra trwa bez limitu rund, dopóki sami nie skończycie. Wygrywa ten, kto ma najwięcej punktów.</li></ul></div>
   <div class="mbox"><h3><svg class="ic" aria-hidden="true"><use href="#i-bulb"/></svg>Wskazówki</h3><ul>
    <li>Zaczynaj od ogólnych pytań: „Czy jestem żywy?”, „Czy jestem miejscem?”, „Czy jestem znany?”.</li>
    <li>Czas tury jest ograniczony, a gospodarz ustawia go w lobby razem z kategoriami.</li>
@@ -638,10 +638,10 @@ function leaveLocal(){
 const pl=n=>n===1?'runda':n<5?'rundy':'rund';
 
 const PRESETS=[
-  {id:'quick',ic:'zap',name:'Szybka partyjka',desc:'Krótkie tury, mało rund. Na szybko.',turnSeconds:15,rounds:2,maxTurns:5},
-  {id:'classic',ic:'dice',name:'Klasyczna',desc:'Zbalansowana gra dla całej ekipy.',turnSeconds:30,rounds:3,maxTurns:8},
-  {id:'marathon',ic:'trophy',name:'Maraton',desc:'Długa rozgrywka na cały wieczór.',turnSeconds:45,rounds:6,maxTurns:15},
-  {id:'chill',ic:'hourglass',name:'Na luzie',desc:'Bez limitu czasu – pytasz, kiedy chcesz.',turnSeconds:0,rounds:3,maxTurns:10}
+  {id:'quick',ic:'zap',name:'Szybka partyjka',desc:'Krótkie tury i mało pytań. Na szybko.',turnSeconds:15,maxTurns:5},
+  {id:'classic',ic:'dice',name:'Klasyczna',desc:'Zbalansowana gra dla całej ekipy.',turnSeconds:30,maxTurns:8},
+  {id:'marathon',ic:'trophy',name:'Maraton',desc:'Długa rozgrywka na cały wieczór.',turnSeconds:45,maxTurns:15},
+  {id:'chill',ic:'hourglass',name:'Na luzie',desc:'Bez limitu czasu – pytasz, kiedy chcesz.',turnSeconds:0,maxTurns:10}
 ];
 function plistHtml(v,host){
   const rows=v.players.map((p,i)=>{
@@ -663,13 +663,12 @@ function cfgHtml(v,host){
   let body;
   if(tab==='presets'){
     body=`${note}<div class="presets">${PRESETS.map(p=>{
-      const on=p.turnSeconds===s.turnSeconds&&p.rounds===s.rounds&&p.maxTurns===s.maxTurns;
-      return `<button type="button" class="preset${on?' sel':''}" data-a="preset" data-id="${p.id}" ${d}>${ic(p.ic)}<h3>${p.name}</h3><p>${p.desc}</p><small>${p.turnSeconds?p.turnSeconds+' s':'bez limitu'} · ${p.rounds} ${pl(p.rounds)} · ${p.maxTurns} pytań</small></button>`}).join('')}</div>`;
+      const on=p.turnSeconds===s.turnSeconds&&p.maxTurns===s.maxTurns;
+      return `<button type="button" class="preset${on?' sel':''}" data-a="preset" data-id="${p.id}" ${d}>${ic(p.ic)}<h3>${p.name}</h3><p>${p.desc}</p><small>${p.turnSeconds?p.turnSeconds+' s':'bez limitu'} · ${p.maxTurns?p.maxTurns+' pytań':'bez limitu pytań'}</small></button>`}).join('')}</div>`;
   }else{
     body=`${note}
     ${row('clock','Czas na turę','Ile sekund ma gracz na zadanie pytania. „Bez limitu” – tura trwa do kliknięcia „Zadałem pytanie”.',sel('turnSeconds',[0,15,20,30,45,60],x=>x===0?'Bez limitu':x+' s'))}
-    ${row('repeat','Liczba rund','Tyle razy każdy dostaje nowe hasło na czoło.',sel('rounds',[1,2,3,4,5,6,8,10],x=>x+' '+pl(x)))}
-    ${row('message','Pytania na gracza','Limit tur jednego gracza w rundzie. Po wyczerpaniu przestaje zgadywać.',sel('maxTurns',[3,5,8,10,15,20],x=>String(x)))}
+    ${row('message','Pytania na gracza','Limit tur jednego gracza w rundzie. Po wyczerpaniu przestaje zgadywać.',sel('maxTurns',[0,3,5,8,10,15,20],x=>x===0?'Bez limitu':String(x)))}
     <div class="cfg-row wide"><div class="cfg-ico">${ic('layers')}</div><div class="cfg-txt"><h3>Kategorie haseł</h3><p>Możesz wybrać kilka naraz.</p></div><div class="cfg-cats chips">${chip('all','Wszystkie')}${Object.entries(CFG.categories).map(([k,l])=>chip(k,l)).join('')}</div></div>`;
   }
   return `<section class="cfg"><div class="cfg-tabs" role="tablist"><button type="button" role="tab" aria-selected="${tab==='presets'}" class="cfg-tab${tab==='presets'?' sel':''}" data-a="cfgtab" data-v="presets">Gotowe zestawy</button><button type="button" role="tab" aria-selected="${tab==='custom'}" class="cfg-tab${tab==='custom'?' sel':''}" data-a="cfgtab" data-v="custom">Własne ustawienia</button></div><div class="cfg-body" role="tabpanel">${body}</div></section>`;
@@ -730,7 +729,7 @@ function render(){
   if(S.lt!==v.turnId){kv='';kf=false}S.lt=v.turnId;
   const host=v.hostId===S.id,act=v.activeId===S.id,max=Math.max(...v.players.map(p=>p.score));
   const L=v.phase==='lobby',R=v.phase==='round',RV=v.phase==='reveal',MT=v.settings.maxTurns;
-  const mb=v.board[S.id],left=mb?MT-mb.turns:0,ap=v.players.find(p=>p.id===v.activeId);
+  const mb=v.board[S.id],left=mb?(MT===0?Infinity:MT-mb.turns):0,ap=v.players.find(p=>p.id===v.activeId);
   const gain=id=>v.lastResult?.entries.find(e=>e.id===id)?.gained||0;
   const up={};v.players.forEach(p=>{up[p.id]=!!S.sc&&S.sc[p.id]!==undefined&&p.score>S.sc[p.id]});
   S.sc=Object.fromEntries(v.players.map(p=>[p.id,p.score]));
@@ -762,7 +761,7 @@ function render(){
   const cam=S.stream?!!S.stream.getVideoTracks()[0]?.enabled:null,mic=S.stream?!!S.stream.getAudioTracks()[0]?.enabled:null;
   const camBtn=cam===null?`<button class="tb" data-a="cv" title="Włącz kamerę">${ic('video-off')}<span class="t">Włącz kamerę</span></button>`:`<button class="tb ${cam?'on':'off'}" data-a="cv" title="${cam?'Wyłącz kamerę':'Włącz kamerę'}" aria-pressed="${cam}">${ic(cam?'video':'video-off')}<span class="t">Kamera ${cam?'wł.':'wył.'}</span></button>`;
   const micBtn=S.stream?`<button class="tb ${mic?'on':'off'}" data-a="mic" title="${mic?'Wycisz mikrofon':'Włącz mikrofon'}" aria-pressed="${mic}">${ic(mic?'mic':'mic-off')}<span class="t">Mikrofon ${mic?'wł.':'wył.'}</span></button>`:'';
-  app.innerHTML=`<div class="top"><div class="pill">${ic('repeat')}Runda ${v.round||'–'}${v.round?' / '+v.totalRounds:''}</div>${LOGO}<div class="pill">Pokój: <span class="rcode" aria-live="polite">${S.showCode?esc(v.code):'••••••'}</span><button class="btn ghost" style="min-height:0;padding:2px 8px" data-a="eye" title="${S.showCode?'Ukryj kod':'Pokaż kod'}" aria-label="${S.showCode?'Ukryj kod pokoju':'Pokaż kod pokoju'}" aria-pressed="${S.showCode}">${ic(S.showCode?'eye-off':'eye')}</button><button class="btn ghost" style="min-height:0;padding:2px 10px;gap:6px" data-a="copy">${ic('copy')}Kopiuj</button></div></div><div class="tmrow${act&&R?' mine':''}">${R&&v.deadline?'<span id="tm"></span>':''}</div>${L?`<div class="lobbywrap">${cfgHtml(v,host)}${plistHtml(v,host)}</div>`:`<div class="grid">${cards}</div>`}<div class="panel"><div class="pmain">${main}</div><div class="ptools"><span class="pill">${ic('users')}${v.players.length} / ${v.settings.maxPlayers} graczy</span><div class="grp"><button class="tb nbtn" data-a="notes">${ic('note')}<span class="t">Notatnik</span></button><button class="tb" data-a="how">${ic('help')}<span class="t">Jak grać</span></button>${camBtn}${micBtn}<button class="tb out" data-a="leave">${ic('log-out')}<span class="t">Wyjdź</span></button></div></div></div>${res}`;
+  app.innerHTML=`<div class="top"><div class="pill">${ic('repeat')}Runda ${v.round||'–'}</div>${LOGO}<div class="pill">Pokój: <span class="rcode" aria-live="polite">${S.showCode?esc(v.code):'••••••'}</span><button class="btn ghost" style="min-height:0;padding:2px 8px" data-a="eye" title="${S.showCode?'Ukryj kod':'Pokaż kod'}" aria-label="${S.showCode?'Ukryj kod pokoju':'Pokaż kod pokoju'}" aria-pressed="${S.showCode}">${ic(S.showCode?'eye-off':'eye')}</button><button class="btn ghost" style="min-height:0;padding:2px 10px;gap:6px" data-a="copy">${ic('copy')}Kopiuj</button></div></div><div class="tmrow${act&&R?' mine':''}">${R&&v.deadline?'<span id="tm"></span>':''}</div>${L?`<div class="lobbywrap">${cfgHtml(v,host)}${plistHtml(v,host)}</div>`:`<div class="grid">${cards}</div>`}<div class="panel"><div class="pmain">${main}</div><div class="ptools"><span class="pill">${ic('users')}${v.players.length} / ${v.settings.maxPlayers} graczy</span><div class="grp"><button class="tb nbtn" data-a="notes">${ic('note')}<span class="t">Notatnik</span></button><button class="tb" data-a="how">${ic('help')}<span class="t">Jak grać</span></button>${camBtn}${micBtn}<button class="tb out" data-a="leave">${ic('log-out')}<span class="t">Wyjdź</span></button></div></div></div>${res}`;
   {const cb=app.querySelector('.cfg-body');if(cb)cb.scrollTop=cs}
   if(fsel){const f=app.querySelector(fsel);if(f&&!f.disabled)f.focus({preventScroll:true})}
   const g=$('#gi');if(g&&kv){g.value=kv;if(kf){g.focus();g.setSelectionRange(kv.length,kv.length)}}
@@ -779,14 +778,13 @@ const nick=()=>{const n=$('#nick').value.trim();localStorage.nick=n;return n};
 function setOpt(el){
   if(!S.v||S.v.hostId!==S.id)return;
   const s=S.v.settings,k=el.dataset.k;
-  const p={categories:[...s.categories],rounds:s.rounds,turnSeconds:s.turnSeconds,maxTurns:s.maxTurns};
+  const p={categories:[...s.categories],turnSeconds:s.turnSeconds,maxTurns:s.maxTurns};
   if(k==='cat'){
     const key=el.dataset.v;let c=p.categories.includes('all')?[]:[...p.categories];
     if(key==='all')c=['all'];
     else{c=c.includes(key)?c.filter(x=>x!==key):[...c,key];if(!c.length)c=['all']}
     p.categories=c;
-  }else if(k==='rounds'&&el.dataset.d)p.rounds=Math.min(10,Math.max(1,s.rounds+Number(el.dataset.d)));
-  else p[k]=Number(el.tagName==='SELECT'?el.value:el.dataset.v);
+  }else p[k]=Number(el.tagName==='SELECT'?el.value:el.dataset.v);
   return emit('settings',p).then(fail);
 }
 const A={
@@ -803,7 +801,7 @@ const A={
   preset(el){
     if(!S.v||S.v.hostId!==S.id)return;
     const pr=PRESETS.find(x=>x.id===el.dataset.id),c=S.v.settings;if(!pr)return;
-    return emit('settings',{categories:[...c.categories],rounds:pr.rounds,turnSeconds:pr.turnSeconds,maxTurns:pr.maxTurns}).then(fail);
+    return emit('settings',{categories:[...c.categories],turnSeconds:pr.turnSeconds,maxTurns:pr.maxTurns}).then(fail);
   },
   start:()=>emit('start').then(fail),
   async guess(){const i=$('#gi'),t=i?.value.trim();if(!t){toast('Wpisz swoje hasło');i?.focus();return}
