@@ -27,73 +27,63 @@ const iceServers: object[] = [
 if (process.env.TURN_URL) iceServers.push({ urls: process.env.TURN_URL, username: process.env.TURN_USER, credential: process.env.TURN_PASS });
 const config = { iceServers, categories: Object.fromEntries(Object.entries(CATEGORIES).map(([k, c]) => [k, c.label])) };
 
-/* ---------- Statyczne pliki: czytane RAZ do pamięci, HTML/JSON dodatkowo gzip ---------- */
-import zlib from 'node:zlib';
-import { createHash } from 'node:crypto';
-type Asset = { type: string; raw: Buffer; gz: Buffer | null; etag: string; cache: string };
-const load = (file: string, type: string, cache: string, compress: boolean): Asset | null => {
-  try {
-    const raw = fs.readFileSync(file);
-    return { type, raw, gz: compress ? zlib.gzipSync(raw, { level: 9 }) : null, etag: '"' + createHash('md5').update(raw).digest('hex') + '"', cache };
-  } catch { console.error(`Brak pliku: ${file}`); return null; }
-};
-const LONG = 'public, max-age=604800, stale-while-revalidate=86400';
-const assets: Record<string, Asset | null> = {
-  '/': load(HTML, 'text/html; charset=utf-8', 'no-cache', true),
-  '/logo.png': load(LOGO, 'image/png', LONG, false),
-  '/favicon.png': load(FAVICON, 'image/png', LONG, false),
-  '/nba02.mp3': load(MP3, 'audio/mpeg', LONG, false),
-};
-assets['/favicon.ico'] = assets['/favicon.png'] ?? null;
-const notFoundPage = load(NOT_FOUND, 'text/html; charset=utf-8', 'no-store', true);
-const configJson = JSON.stringify(config);
-
-function send(req: http.IncomingMessage, res: http.ServerResponse, a: Asset, status = 200) {
-  const headers: Record<string, string | number> = { 'Content-Type': a.type, 'Cache-Control': a.cache, ETag: a.etag, Vary: 'Accept-Encoding' };
-  if (status === 200 && req.headers['if-none-match'] === a.etag) { res.writeHead(304, headers); return void res.end(); }
-  let body = a.raw;
-  if (a.gz && /\bgzip\b/.test(String(req.headers['accept-encoding'] ?? ''))) { body = a.gz; headers['Content-Encoding'] = 'gzip'; }
-  headers['Content-Length'] = body.length;
-  res.writeHead(status, headers);
-  res.end(req.method === 'HEAD' ? undefined : body);
-}
-
 const server = http.createServer((req, res) => {
-  const pathname = (req.url ?? '/').split('?')[0]!.split('#')[0]!;
-  const readOnly = req.method === 'GET' || req.method === 'HEAD';
-  if (pathname === '/config') {
-    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' });
-    return void res.end(configJson);
+  if (req.url?.startsWith('/config')) {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return void res.end(JSON.stringify(config));
   }
-  if (pathname === '/nba02.mp3' && assets['/nba02.mp3']) {
-    // Range (Safari/iOS) obsługiwany z bufora w pamięci, bez czytania z dysku przy każdym żądaniu.
-    const a = assets['/nba02.mp3']!, buf = a.raw;
-    const base = { 'Content-Type': a.type, 'Accept-Ranges': 'bytes', 'Cache-Control': a.cache };
+  if (req.url?.startsWith('/nba02.mp3')) {
+    // Pełna obsługa Content-Length i Range (Safari/iOS i część przeglądarek bez tego nie odtwarza audio).
+    const buf = fs.readFileSync(MP3);
+    const base = { 'Content-Type': 'audio/mpeg', 'Accept-Ranges': 'bytes', 'Cache-Control': 'public, max-age=86400' };
     const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
     if (m && (m[1] || m[2])) {
       const start = m[1] ? Number(m[1]) : Math.max(0, buf.length - Number(m[2]));
       const end = m[1] && m[2] ? Math.min(Number(m[2]), buf.length - 1) : buf.length - 1;
-      if (start > end || start >= buf.length) { res.writeHead(416, { 'Content-Range': `bytes */${buf.length}` }); return void res.end(); }
+      if (start > end || start >= buf.length) {
+        res.writeHead(416, { 'Content-Range': `bytes */${buf.length}` });
+        return void res.end();
+      }
       res.writeHead(206, { ...base, 'Content-Range': `bytes ${start}-${end}/${buf.length}`, 'Content-Length': end - start + 1 });
       return void res.end(req.method === 'HEAD' ? undefined : buf.subarray(start, end + 1));
     }
     res.writeHead(200, { ...base, 'Content-Length': buf.length });
     return void res.end(req.method === 'HEAD' ? undefined : buf);
   }
-  if (readOnly) {
-    const known = pathname === '/' || pathname === '/index.html' || /^\/room\/[A-Za-z0-9]{6}\/?$/.test(pathname);
-    const a = known ? assets['/'] : assets[pathname];
-    if (a) return void send(req, res, a);
+  if (req.url?.split('?')[0] === '/logo.png' && (req.method === 'GET' || req.method === 'HEAD')) {
+    try {
+      const buf = fs.readFileSync(LOGO);
+      res.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': buf.length, 'Cache-Control': 'public, max-age=3600' });
+      return void res.end(req.method === 'HEAD' ? undefined : buf);
+    } catch {
+      console.error(`Brak pliku logo: ${LOGO}`);
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+      return void res.end('logo.png not found');
+    }
   }
-  if (notFoundPage) return void send(req, res, notFoundPage, 404);
-  res.writeHead(404, { 'Content-Type': 'text/plain' });
-  res.end('404');
+  const fav = (req.url ?? '').split('?')[0];
+  if ((fav === '/favicon.png' || fav === '/favicon.ico') && (req.method === 'GET' || req.method === 'HEAD')) {
+    try {
+      const buf = fs.readFileSync(FAVICON);
+      res.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': buf.length, 'Cache-Control': 'public, max-age=3600' });
+      return void res.end(req.method === 'HEAD' ? undefined : buf);
+    } catch {
+      console.error(`Brak pliku favicon: ${FAVICON}`);
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+      return void res.end('favicon not found');
+    }
+  }
+  // Strona główna i linki zaproszeń /room/KOD → gra; cokolwiek innego → własne 404.
+  const pathname = (req.url ?? '/').split('?')[0]!.split('#')[0]!;
+  const known = pathname === '/' || pathname === '/index.html' || /^\/room\/[A-Za-z0-9]{6}\/?$/.test(pathname);
+  if (known && (req.method === 'GET' || req.method === 'HEAD')) {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    return void res.end(fs.readFileSync(HTML));
+  }
+  res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+  res.end(fs.readFileSync(NOT_FOUND));
 });
-const io = new Server(server, {
-  maxHttpBufferSize: 1e5,
-  perMessageDeflate: false, // mniej CPU na słabym hostingu; stan gry jest mały
-  pingInterval: 10_000, pingTimeout: 8_000,
-});
+const io = new Server(server, { maxHttpBufferSize: 1e5 });
 
 function broadcast(room: Room) {
   for (const p of room.players) sockets.get(p.id)?.emit('state', { ...G.viewFor(room, p.id), now: Date.now() });
